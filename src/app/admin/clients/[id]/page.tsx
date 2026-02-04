@@ -294,9 +294,9 @@ export default function ClientWorkflowPage() {
                     </Button>
                 </Link>
 
-                <div className="flex gap-6">
+                <div className="flex flex-col md:flex-row gap-6">
                     {/* Left Sidebar - Steps */}
-                    <div className="w-64 flex-shrink-0">
+                    <div className="w-full md:w-64 flex-shrink-0">
                         <Card className="sticky top-6">
                             <CardContent className="p-4">
                                 <h3 className="font-semibold text-gray-900 mb-4">Workflow Steps</h3>
@@ -348,7 +348,7 @@ export default function ClientWorkflowPage() {
                             <Card>
                                 <CardContent className="p-6">
                                     <h2 className="text-xl font-bold mb-6">Step 1: Client Information</h2>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-sm text-gray-500">Legal Name</label>
                                             <p className="font-medium">{client.legalName}</p>
@@ -715,7 +715,7 @@ export default function ClientWorkflowPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Website Card */}
                                     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow">
                                         <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4">
@@ -936,7 +936,7 @@ export default function ClientWorkflowPage() {
                                         </div>
                                         <h3 className="font-bold text-lg text-gray-800">Publishing Status</h3>
                                     </div>
-                                    <div className="flex gap-3">
+                                    <div className="flex flex-col sm:flex-row gap-3">
                                         {(['NOT_SUBMITTED', 'IN_REVIEW', 'PRODUCTION'] as const).map((status) => (
                                             <button
                                                 key={status}
@@ -966,7 +966,7 @@ export default function ClientWorkflowPage() {
                                         </div>
                                         <h3 className="font-bold text-lg text-gray-800">Play Console Account Sale</h3>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <button
                                             onClick={() => setAccountSaleComplete(!accountSaleComplete)}
                                             className={`p-4 rounded-xl border-2 transition-all ${accountSaleComplete
@@ -1008,7 +1008,7 @@ export default function ClientWorkflowPage() {
                                             <p className="text-red-100 text-sm">Costs paid by your company, not client</p>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-4 mb-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                                         <div className="bg-white/10 rounded-xl p-4">
                                             <label className="text-red-100 text-sm block mb-1">Domain Cost (₹)</label>
                                             <input

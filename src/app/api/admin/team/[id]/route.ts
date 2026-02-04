@@ -13,6 +13,20 @@ export async function PUT(
         const { id } = await params
         const { name, email, password, role, isActive } = await request.json()
 
+        // Check if target user is Super Admin
+        const targetUser = await prisma.user.findUnique({
+            where: { id },
+            select: { role: true }
+        })
+
+        // Prevent deactivation of Super Admins
+        if (targetUser?.role === 'SUPER_ADMIN' && isActive === false) {
+            return NextResponse.json(
+                { error: 'Cannot deactivate a Super Admin account' },
+                { status: 403 }
+            )
+        }
+
         // Prevent self-deactivation
         if (id === currentUser.id && isActive === false) {
             return NextResponse.json(
@@ -63,7 +77,20 @@ export async function DELETE(
         const currentUser = await requireSuperAdmin()
         const { id } = await params
 
-        // Prevent self-deletion
+        // Check if target user is a Super Admin
+        const targetUser = await prisma.user.findUnique({
+            where: { id },
+            select: { role: true }
+        })
+
+        if (targetUser?.role === 'SUPER_ADMIN') {
+            return NextResponse.json(
+                { error: 'Cannot delete a Super Admin account' },
+                { status: 403 }
+            )
+        }
+
+        // Prevent self-deletion (redundant but safe)
         if (id === currentUser.id) {
             return NextResponse.json(
                 { error: 'Cannot delete your own account' },
@@ -71,10 +98,9 @@ export async function DELETE(
             )
         }
 
-        // Soft delete - just deactivate
-        await prisma.user.update({
-            where: { id },
-            data: { isActive: false }
+        // Hard delete - actually remove the user
+        await prisma.user.delete({
+            where: { id }
         })
 
         return NextResponse.json({ success: true })

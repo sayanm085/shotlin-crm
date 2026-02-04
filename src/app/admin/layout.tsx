@@ -7,8 +7,10 @@ export default function AdminLayout({
 }) {
     return (
         <div className="min-h-screen bg-gray-50">
-            <AdminSidebar />
-            <div className="pl-64">
+            <div className="hidden md:block">
+                <AdminSidebar />
+            </div>
+            <div className="md:pl-64 transition-all duration-300">
                 {children}
             </div>
         </div>

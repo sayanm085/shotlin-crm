@@ -138,8 +138,8 @@ export default function ClientsPage() {
                                         setPage(1)
                                     }}
                                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${statusFilter === filter
-                                            ? 'bg-blue-50 text-blue-600'
-                                            : 'text-gray-600 hover:bg-gray-50'
+                                        ? 'bg-blue-50 text-blue-600'
+                                        : 'text-gray-600 hover:bg-gray-50'
                                         }`}
                                 >
                                     {filter.charAt(0) + filter.slice(1).toLowerCase()}
@@ -187,26 +187,26 @@ export default function ClientsPage() {
                                         <Link key={client.id} href={`/admin/clients/${client.id}`}>
                                             <Card className={`hover:shadow-md transition-shadow cursor-pointer ${client.blocked ? 'border-red-200 bg-red-50/30' : ''}`}>
                                                 <CardContent className="py-4">
-                                                    <div className="flex items-center justify-between">
+                                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                         <div className="flex items-center gap-4">
-                                                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                                                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                                                                 {client.name.charAt(0)}
                                                             </div>
-                                                            <div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <h3 className="font-semibold text-gray-900">{client.name}</h3>
-                                                                    <div className="flex items-center gap-1 text-gray-500">
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <h3 className="font-semibold text-gray-900 truncate">{client.name}</h3>
+                                                                    <div className="flex items-center gap-1 text-gray-500 flex-shrink-0">
                                                                         <TypeIcon className="h-4 w-4" />
                                                                         <span className="text-xs">{client.type.replace('_', ' ')}</span>
                                                                     </div>
                                                                     {client.createdByName && (
-                                                                        <div className="flex items-center gap-1 bg-purple-100 px-2 py-0.5 rounded-full">
+                                                                        <div className="flex items-center gap-1 bg-purple-100 px-2 py-0.5 rounded-full flex-shrink-0">
                                                                             <UserCheck className="h-3 w-3 text-purple-600" />
-                                                                            <span className="text-xs text-purple-700">{client.createdByName}</span>
+                                                                            <span className="text-xs text-purple-700 truncate max-w-[100px]">{client.createdByName}</span>
                                                                         </div>
                                                                     )}
                                                                 </div>
-                                                                <div className="flex items-center gap-2 mt-1">
+                                                                <div className="flex flex-wrap items-center gap-2 mt-1">
                                                                     <span className="text-sm text-gray-500">Step {client.currentStep}/{client.totalSteps}:</span>
                                                                     <Badge variant={client.blocked ? 'destructive' : client.status === 'Completed' ? 'success' : 'info'}>
                                                                         {client.status}
@@ -215,12 +215,12 @@ export default function ClientsPage() {
                                                             </div>
                                                         </div>
 
-                                                        <div className="flex items-center gap-6">
-                                                            <div className="w-32 hidden md:block">
+                                                        <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0 pl-16 md:pl-0">
+                                                            <div className="w-full md:w-32">
                                                                 <ProgressBar completed={client.currentStep} total={client.totalSteps} showLabel={false} />
                                                                 <p className="text-xs text-gray-500 text-center mt-1">{progress}%</p>
                                                             </div>
-                                                            <ArrowUpRight className="h-5 w-5 text-gray-400" />
+                                                            <ArrowUpRight className="h-5 w-5 text-gray-400 hidden md:block" />
                                                         </div>
                                                     </div>
                                                 </CardContent>
@@ -260,8 +260,8 @@ export default function ClientsPage() {
                                                 key={p}
                                                 onClick={() => setPage(p)}
                                                 className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${page === p
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'text-gray-600 hover:bg-gray-100'
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'text-gray-600 hover:bg-gray-100'
                                                     }`}
                                             >
                                                 {p}

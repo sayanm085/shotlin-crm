@@ -134,14 +134,7 @@ export default function LoginPage() {
                             </Button>
                         </form>
 
-                        <div className="mt-6 text-center">
-                            <p className="text-sm text-gray-400">
-                                Client portal?{' '}
-                                <Link href="/portal" className="text-blue-400 hover:text-blue-300">
-                                    Access here
-                                </Link>
-                            </p>
-                        </div>
+
                     </CardContent>
                 </Card>
 

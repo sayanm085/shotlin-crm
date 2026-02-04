@@ -20,7 +20,12 @@ const baseNavigation = [
     { name: 'Clients', href: '/admin/clients', icon: Users },
 ]
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+    className?: string
+    onClose?: () => void
+}
+
+export function AdminSidebar({ className, onClose }: AdminSidebarProps) {
     const pathname = usePathname()
     const { data: session, status } = useSession()
 
@@ -36,16 +41,24 @@ export function AdminSidebar() {
     }
 
     return (
-        <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white">
+        <aside className={cn("fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white transition-transform duration-300", className)}>
             {/* Logo */}
-            <div className="flex h-16 items-center gap-2 px-6 border-b border-gray-700">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <span className="text-lg font-bold">S</span>
+            <div className="flex h-16 items-center justify-between px-6 border-b border-gray-700">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <span className="text-lg font-bold">S</span>
+                    </div>
+                    <div>
+                        <h1 className="font-bold text-lg">Shotlin</h1>
+                        <p className="text-xs text-gray-400">Cloud Ops 4.5</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="font-bold text-lg">Shotlin</h1>
-                    <p className="text-xs text-gray-400">Cloud Ops 4.5</p>
-                </div>
+                {/* Close button for mobile */}
+                {onClose && (
+                    <button onClick={onClose} className="md:hidden text-gray-400 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                    </button>
+                )}
             </div>
 
             {/* Navigation */}
@@ -56,6 +69,7 @@ export function AdminSidebar() {
                         <Link
                             key={item.name}
                             href={item.href}
+                            onClick={onClose}
                             className={cn(
                                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                                 isActive
@@ -79,8 +93,8 @@ export function AdminSidebar() {
                 <div className="px-3 py-4 border-t border-gray-700">
                     <div className="flex items-center gap-3 px-3 py-2">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSuperAdmin
-                                ? 'bg-gradient-to-br from-purple-500 to-pink-500'
-                                : 'bg-gradient-to-br from-blue-500 to-cyan-500'
+                            ? 'bg-gradient-to-br from-purple-500 to-pink-500'
+                            : 'bg-gradient-to-br from-blue-500 to-cyan-500'
                             }`}>
                             {isSuperAdmin ? (
                                 <Shield className="h-4 w-4 text-white" />
@@ -100,13 +114,17 @@ export function AdminSidebar() {
             <div className="border-t border-gray-700 p-3 space-y-1">
                 <Link
                     href="/admin/settings"
+                    onClick={onClose}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-200"
                 >
                     <Settings className="h-5 w-5" />
                     Settings
                 </Link>
                 <button
-                    onClick={handleSignOut}
+                    onClick={() => {
+                        handleSignOut()
+                        if (onClose) onClose()
+                    }}
                     className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-red-600/20 hover:text-red-400 transition-all duration-200"
                 >
                     <LogOut className="h-5 w-5" />

@@ -3,15 +3,14 @@ import Credentials from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import prisma from "@/lib/prisma"
 import { compare } from "bcryptjs"
+import { authConfig } from "@/auth.config"
 
 export type UserRole = "SUPER_ADMIN" | "TEAM_MEMBER" | "CLIENT"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+    ...authConfig,
     adapter: PrismaAdapter(prisma),
     session: { strategy: "jwt" },
-    pages: {
-        signIn: "/login",
-    },
     providers: [
         Credentials({
             name: "credentials",

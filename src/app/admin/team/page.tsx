@@ -14,9 +14,11 @@ import {
     UserX,
     Shield,
     User,
+    Key,
     Trash2,
     X,
 } from 'lucide-react'
+import { AdminResetPasswordModal } from '@/components/admin/AdminResetPasswordModal'
 
 interface TeamMember {
     id: string
@@ -44,6 +46,11 @@ export default function TeamPage() {
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
     const [deleteConfirmName, setDeleteConfirmName] = useState<string>('')
     const [deleting, setDeleting] = useState(false)
+
+    // Password Reset Modal State
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+    const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null)
+    const [resetPasswordUserName, setResetPasswordUserName] = useState<string>('')
 
     useEffect(() => {
         fetchTeam()
@@ -197,9 +204,9 @@ export default function TeamPage() {
                     {team.map((member) => (
                         <Card key={member.id} className={`transition-all ${!member.isActive ? 'opacity-60' : ''}`}>
                             <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${member.role === 'SUPER_ADMIN'
+                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${member.role === 'SUPER_ADMIN'
                                             ? 'bg-gradient-to-br from-purple-500 to-pink-500'
                                             : 'bg-gradient-to-br from-blue-500 to-cyan-500'
                                             }`}>
@@ -209,9 +216,9 @@ export default function TeamPage() {
                                                 <User className="h-5 w-5 text-white" />
                                             )}
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold text-gray-900">
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <h3 className="font-semibold text-gray-900 truncate">
                                                     {member.name || 'Unnamed User'}
                                                 </h3>
                                                 <Badge
@@ -230,40 +237,62 @@ export default function TeamPage() {
                                                     </Badge>
                                                 )}
                                             </div>
-                                            <p className="text-gray-500 text-sm">{member.email}</p>
+                                            <p className="text-gray-500 text-sm truncate">{member.email}</p>
                                             <p className="text-gray-400 text-xs mt-1">
                                                 Added {new Date(member.createdAt).toLocaleDateString()}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => toggleActive(member.id, member.isActive)}
-                                            className={member.isActive ? 'text-yellow-600 hover:text-yellow-700' : 'text-green-600 hover:text-green-700'}
-                                        >
-                                            {member.isActive ? (
-                                                <>
-                                                    <UserX className="h-4 w-4 mr-1" />
-                                                    Deactivate
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <UserCheck className="h-4 w-4 mr-1" />
-                                                    Activate
-                                                </>
-                                            )}
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => openDeleteConfirm(member.id, member.name || '')}
-                                            className="text-red-600 hover:text-red-700"
-                                            title="Delete team member"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                    <div className="flex items-center gap-2 self-end md:self-auto">
+                                        {member.role !== 'SUPER_ADMIN' ? (
+                                            <>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => toggleActive(member.id, member.isActive)}
+                                                    className={member.isActive ? 'text-yellow-600 hover:text-yellow-700' : 'text-green-600 hover:text-green-700'}
+                                                >
+                                                    {member.isActive ? (
+                                                        <>
+                                                            <UserX className="h-4 w-4 mr-1" />
+                                                            <span className="hidden md:inline">Deactivate</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <UserCheck className="h-4 w-4 mr-1" />
+                                                            <span className="hidden md:inline">Activate</span>
+                                                        </>
+                                                    )}
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openDeleteConfirm(member.id, member.name || '')}
+                                                    className="text-red-600 hover:text-red-700"
+                                                    title="Delete team member"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setResetPasswordUserId(member.id)
+                                                        setResetPasswordUserName(member.name || 'this user')
+                                                        setShowResetPasswordModal(true)
+                                                    }}
+                                                    className="text-yellow-600 hover:text-yellow-700"
+                                                    title="Reset Password"
+                                                >
+                                                    <Key className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <div className="px-3 py-1 bg-purple-50 text-purple-600 rounded-lg text-xs font-medium flex items-center gap-1 border border-purple-100">
+                                                <Shield className="h-3 w-3" />
+                                                Protected
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>
@@ -433,6 +462,18 @@ export default function TeamPage() {
                         </Card>
                     </div>
                 )}
+
+                {/* Password Reset Modal */}
+                <AdminResetPasswordModal
+                    isOpen={showResetPasswordModal}
+                    onClose={() => setShowResetPasswordModal(false)}
+                    userId={resetPasswordUserId}
+                    userName={resetPasswordUserName}
+                    onSuccess={() => {
+                        // Optional: Show success toast
+                        alert('Password reset successfully')
+                    }}
+                />
             </main>
         </div>
     )

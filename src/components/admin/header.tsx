@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { Bell, Search, User, Key, LogOut, ChevronDown } from 'lucide-react'
+import { Bell, Search, User, Key, LogOut, ChevronDown, Menu } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { ChangePasswordModal } from './ChangePasswordModal'
 import { signOut } from 'next-auth/react'
+import { AdminSidebar } from './sidebar'
 
 interface AdminHeaderProps {
     title: string
@@ -16,6 +17,7 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
     const { data: session } = useSession()
     const [showDropdown, setShowDropdown] = useState(false)
     const [showPasswordModal, setShowPasswordModal] = useState(false)
+    const [showMobileSidebar, setShowMobileSidebar] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
 
     // Close dropdown when clicking outside
@@ -34,15 +36,25 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
 
     return (
         <>
-            <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-                <div>
-                    <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-                    {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+            <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
+                <div className="flex items-center gap-3">
+                    {/* Mobile Menu Button */}
+                    <button
+                        onClick={() => setShowMobileSidebar(true)}
+                        className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                        <Menu className="h-5 w-5" />
+                    </button>
+
+                    <div>
+                        <h1 className="text-xl font-semibold text-gray-900 line-clamp-1">{title}</h1>
+                        {subtitle && <p className="text-sm text-gray-500 hidden md:block">{subtitle}</p>}
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    {/* Search */}
-                    <div className="relative w-64">
+                <div className="flex items-center gap-2 md:gap-4">
+                    {/* Search - Hidden on mobile, valid tradeoff or use icon */}
+                    <div className="relative w-64 hidden md:block">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
                             placeholder="Search clients..."
@@ -62,11 +74,11 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
                             onClick={() => setShowDropdown(!showDropdown)}
                             className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                         >
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                                 <User className="h-4 w-4 text-white" />
                             </div>
-                            <span className="text-sm font-medium text-gray-700">{userName}</span>
-                            <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                            <span className="text-sm font-medium text-gray-700 hidden md:block">{userName}</span>
+                            <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform hidden md:block ${showDropdown ? 'rotate-180' : ''}`} />
                         </button>
 
                         {/* Dropdown Menu */}
@@ -92,7 +104,7 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
                                     </button>
                                     <button
                                         onClick={() => signOut({ callbackUrl: '/login' })}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors"
                                     >
                                         <LogOut className="h-4 w-4" />
                                         Sign Out
@@ -103,6 +115,22 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
                     </div>
                 </div>
             </header>
+
+            {/* Mobile Sidebar Overlay */}
+            {showMobileSidebar && (
+                <div className="fixed inset-0 z-50 md:hidden">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                        onClick={() => setShowMobileSidebar(false)}
+                    />
+                    {/* Sidebar */}
+                    <AdminSidebar
+                        className="w-64 h-full shadow-2xl animate-in slide-in-from-left duration-200"
+                        onClose={() => setShowMobileSidebar(false)}
+                    />
+                </div>
+            )}
 
             {/* Change Password Modal */}
             <ChangePasswordModal
