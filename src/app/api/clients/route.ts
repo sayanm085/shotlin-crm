@@ -17,22 +17,36 @@ interface ClientResponse {
     createdByName: string | null
 }
 
-// GET all clients (filtered by role)
-export async function GET() {
+// GET all clients (filtered by role, status, and paginated)
+export async function GET(request: NextRequest) {
     try {
-        // Get current user session
         const session = await auth()
         if (!session?.user) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
         }
 
+        const { searchParams } = new URL(request.url)
+        const page = parseInt(searchParams.get('page') || '1')
+        const limit = parseInt(searchParams.get('limit') || '20')
+        const statusFilter = searchParams.get('status') || 'ALL' // ALL, COMPLETED, ONGOING, BLOCKED
+        const search = searchParams.get('search') || ''
+
         const user = session.user
         const isSuperAdmin = user.role === 'SUPER_ADMIN'
 
-        // Build where clause based on role
-        // Super Admin sees all clients, Team Member sees only their clients
-        const clients = await prisma.client.findMany({
-            where: isSuperAdmin ? undefined : { createdById: user.id },
+        // 1. Fetch all accessible clients
+        const allClients = await prisma.client.findMany({
+            where: {
+                AND: [
+                    isSuperAdmin ? {} : { createdById: user.id },
+                    search ? {
+                        OR: [
+                            { legalName: { contains: search, mode: 'insensitive' } },
+                            { email: { contains: search, mode: 'insensitive' } },
+                        ]
+                    } : {}
+                ]
+            },
             include: {
                 complianceDocuments: true,
                 playConsoleStatus: true,
@@ -41,8 +55,8 @@ export async function GET() {
             orderBy: { createdAt: 'desc' },
         })
 
-        // Calculate current step for each client
-        const clientsWithStep: ClientResponse[] = clients.map((client) => {
+        // 2. Calculate derived status for all
+        const clientsWithStep: ClientResponse[] = allClients.map((client) => {
             let currentStep = 1
             let status = 'Client Info'
             let blocked = false
@@ -60,23 +74,30 @@ export async function GET() {
                 status = 'MSME Pending'
             }
 
-            // Step 3: D-U-N-S
-            if (client.complianceDocuments?.dunsStatus === 'APPROVED') {
+            // Step 3: DUNS
+            if (client.complianceDocuments?.dunsStatus === 'APPROVED' && currentStep >= 3) {
                 currentStep = 4
-                status = 'Play Console Setup'
-            } else if (currentStep === 3 && client.complianceDocuments?.dunsStatus === 'PENDING') {
+                status = 'Play Console'
+            } else if (client.complianceDocuments?.dunsStatus === 'PENDING') {
                 blocked = true
                 status = 'D-U-N-S Pending'
             }
 
             // Step 4: Play Console
-            if (client.playConsoleStatus?.consoleReady) {
+            if (client.playConsoleStatus?.paymentStatus === 'COMPLETED' &&
+                client.playConsoleStatus?.idVerificationStatus === 'VERIFIED' &&
+                currentStep >= 4) {
                 currentStep = 5
                 status = 'Website'
             } else if (currentStep === 4) {
-                if (!client.playConsoleStatus?.companyVerificationStatus) {
+                // Check internal Play Console steps
+                if (client.playConsoleStatus?.paymentStatus === 'PENDING') {
+                    status = 'Play Console Payment'
                     blocked = true
+                } else if (client.playConsoleStatus?.idVerificationStatus === 'PENDING' ||
+                    client.playConsoleStatus?.idVerificationStatus === 'FAILED') {
                     status = 'Play Console Verification'
+                    blocked = true
                 }
             }
 
@@ -117,7 +138,32 @@ export async function GET() {
             }
         })
 
-        return NextResponse.json(clientsWithStep)
+        // 3. Apply Status Filter
+        let filteredLists = clientsWithStep
+        if (statusFilter !== 'ALL') {
+            filteredLists = clientsWithStep.filter(c => {
+                if (statusFilter === 'COMPLETED') return c.status === 'Completed'
+                if (statusFilter === 'BLOCKED') return c.blocked
+                if (statusFilter === 'ONGOING') return !c.blocked && c.status !== 'Completed'
+                return true
+            })
+        }
+
+        // 4. Paginate
+        const totalItems = filteredLists.length
+        const totalPages = Math.ceil(totalItems / limit)
+        const startIndex = (page - 1) * limit
+        const paginatedData = filteredLists.slice(startIndex, startIndex + limit)
+
+        return NextResponse.json({
+            data: paginatedData,
+            meta: {
+                total: totalItems,
+                page,
+                limit,
+                totalPages
+            }
+        })
     } catch (error) {
         console.error('Error fetching clients:', error)
         return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 })
