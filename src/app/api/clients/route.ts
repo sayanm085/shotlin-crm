@@ -170,6 +170,17 @@ export async function GET(request: NextRequest) {
     }
 }
 
+import { z } from 'zod'
+
+// Client Creation Schema
+const createClientSchema = z.object({
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    pan: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN format'),
+    type: z.enum(['INDIVIDUAL', 'FIRM', 'PVT_LTD']),
+    email: z.string().email('Invalid email address'),
+    phone: z.string().regex(/^[0-9]{10}$/, 'Invalid phone number').optional().or(z.literal('')),
+})
+
 // POST create new client
 export async function POST(request: NextRequest) {
     try {
@@ -180,15 +191,17 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json()
-        const { name, pan, type, email, phone } = body
 
-        // Validate required fields
-        if (!name || !pan || !type || !email) {
+        // Zod Validation
+        const validation = createClientSchema.safeParse(body)
+        if (!validation.success) {
             return NextResponse.json(
-                { error: 'Name, PAN, Type, and Email are required' },
+                { error: validation.error.issues[0].message },
                 { status: 400 }
             )
         }
+
+        const { name, pan, type, email, phone } = validation.data
 
         // Create client with related records
         const client = await prisma.client.create({

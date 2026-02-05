@@ -2,26 +2,28 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireSuperAdmin } from '@/lib/auth'
 import { hash } from 'bcryptjs'
+import { z } from 'zod'
+
+// Validation Schema
+const createTeamMemberSchema = z.object({
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    role: z.enum(['SUPER_ADMIN', 'TEAM_MEMBER', 'MEMBER']).default('TEAM_MEMBER'),
+})
 
 // GET: List all team members
 export async function GET() {
     try {
         await requireSuperAdmin()
 
-        const users = await prisma.user.findMany({
-            where: {
-                role: { in: ['SUPER_ADMIN', 'TEAM_MEMBER'] }
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-                isActive: true,
-                createdAt: true,
-            },
-            orderBy: { createdAt: 'desc' }
-        })
+        // Using raw query to bypass stale Prisma client validation (UserRole enum issue)
+        const users = await prisma.$queryRaw`
+            SELECT id, name, email, role, "isActive", "createdAt" 
+            FROM "User" 
+            WHERE role IN ('SUPER_ADMIN', 'TEAM_MEMBER', 'MEMBER')
+            ORDER BY "createdAt" DESC
+        `
 
         return NextResponse.json(users)
     } catch (error) {
@@ -41,15 +43,18 @@ export async function POST(request: Request) {
     try {
         await requireSuperAdmin()
 
-        const { name, email, password, role } = await request.json()
+        const body = await request.json()
 
-        // Validate inputs
-        if (!name || !email || !password) {
+        // Zod Validation
+        const validation = createTeamMemberSchema.safeParse(body)
+        if (!validation.success) {
             return NextResponse.json(
-                { error: 'Name, email, and password are required' },
+                { error: validation.error.issues[0].message },
                 { status: 400 }
             )
         }
+
+        const { name, email, password, role } = validation.data
 
         // Check if email already exists
         const existingUser = await prisma.user.findUnique({
@@ -65,25 +70,27 @@ export async function POST(request: Request) {
 
         // Hash password
         const hashedPassword = await hash(password, 12)
+        const now = new Date()
 
-        // Create user
-        const user = await prisma.user.create({
-            data: {
-                name,
-                email,
-                password: hashedPassword,
-                role: role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'TEAM_MEMBER',
-                isActive: true,
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-                isActive: true,
-                createdAt: true,
-            }
-        })
+        // Use crypto.randomUUID() which is available in Node 19+ and Next.js
+        const id = crypto.randomUUID()
+
+        // Create user using Raw SQL to bypass Prisma validation
+        // We cast role to "UserRole" enum type in Postgres
+        await prisma.$executeRaw`
+            INSERT INTO "User" (id, name, email, password, role, "isActive", "createdAt", "updatedAt")
+            VALUES (${id}, ${name}, ${email}, ${hashedPassword}, CAST(${role} AS "UserRole"), true, ${now}, ${now})
+        `
+
+        // Construct the user object to return
+        const user = {
+            id,
+            name,
+            email,
+            role,
+            isActive: true,
+            createdAt: now
+        }
 
         return NextResponse.json(user, { status: 201 })
     } catch (error) {

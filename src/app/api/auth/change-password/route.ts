@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
+import { z } from 'zod'
+
+const changePasswordSchema = z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+})
 
 export async function POST(request: NextRequest) {
     try {
@@ -11,21 +17,17 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json()
-        const { currentPassword, newPassword } = body
 
-        if (!currentPassword || !newPassword) {
+        // Zod Validation
+        const validation = changePasswordSchema.safeParse(body)
+        if (!validation.success) {
             return NextResponse.json(
-                { error: 'Current password and new password are required' },
+                { error: validation.error.issues[0].message },
                 { status: 400 }
             )
         }
 
-        if (newPassword.length < 8) {
-            return NextResponse.json(
-                { error: 'New password must be at least 8 characters' },
-                { status: 400 }
-            )
-        }
+        const { currentPassword, newPassword } = validation.data
 
         // Get user with password
         const user = await prisma.user.findUnique({

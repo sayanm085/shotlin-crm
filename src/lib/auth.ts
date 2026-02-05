@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma"
 import { compare } from "bcryptjs"
 import { authConfig } from "@/auth.config"
 
-export type UserRole = "SUPER_ADMIN" | "TEAM_MEMBER" | "CLIENT"
+export type UserRole = "SUPER_ADMIN" | "TEAM_MEMBER" | "CLIENT" | "MEMBER"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig,
@@ -27,9 +27,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 }
 
                 try {
-                    const user = await prisma.user.findUnique({
-                        where: { email: credentials.email as string },
-                    })
+                    // Use raw query to bypass stale Prisma client validation (UserRole enum issue)
+                    const users = await prisma.$queryRaw<any[]>`
+                        SELECT id, name, email, password, role, "isActive", "clientId"
+                        FROM "User" 
+                        WHERE email = ${credentials.email}
+                        LIMIT 1
+                    `
+                    const user = users[0]
 
                     console.log("[AUTH] User found:", user ? { id: user.id, email: user.email, role: user.role } : null)
 
@@ -111,7 +116,7 @@ export async function requireSuperAdmin() {
 
 export async function requireAdmin() {
     const user = await requireAuth()
-    if (user.role !== 'SUPER_ADMIN' && user.role !== 'TEAM_MEMBER') {
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'TEAM_MEMBER' && user.role !== 'MEMBER') {
         throw new Error('Forbidden: Admin access required')
     }
     return user

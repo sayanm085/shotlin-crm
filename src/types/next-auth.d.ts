@@ -12,7 +12,7 @@ declare module "next-auth" {
             id: string
             email: string
             name?: string | null
-            role: "SUPER_ADMIN" | "TEAM_MEMBER" | "CLIENT"
+            role: "SUPER_ADMIN" | "TEAM_MEMBER" | "CLIENT" | "MEMBER"
             clientId: string | null
         }
     }

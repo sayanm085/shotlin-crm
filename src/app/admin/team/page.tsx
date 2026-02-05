@@ -40,7 +40,7 @@ export default function TeamPage() {
     const [newName, setNewName] = useState('')
     const [newEmail, setNewEmail] = useState('')
     const [newPassword, setNewPassword] = useState('')
-    const [newRole, setNewRole] = useState<'SUPER_ADMIN' | 'TEAM_MEMBER'>('TEAM_MEMBER')
+    const [newRole, setNewRole] = useState<'SUPER_ADMIN' | 'TEAM_MEMBER' | 'MEMBER'>('TEAM_MEMBER')
 
     // Delete confirmation modal state
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
@@ -385,6 +385,16 @@ export default function TeamPage() {
                                             </button>
                                             <button
                                                 type="button"
+                                                onClick={() => setNewRole('MEMBER')}
+                                                className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all ${newRole === 'MEMBER'
+                                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                                    : 'border-gray-200 hover:border-gray-300'
+                                                    }`}
+                                            >
+                                                Member
+                                            </button>
+                                            <button
+                                                type="button"
                                                 onClick={() => setNewRole('SUPER_ADMIN')}
                                                 className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all ${newRole === 'SUPER_ADMIN'
                                                     ? 'border-purple-500 bg-purple-50 text-purple-700'
@@ -420,48 +430,51 @@ export default function TeamPage() {
                             </CardContent>
                         </Card>
                     </div>
-                )}
+                )
+                }
 
                 {/* Delete Confirmation Modal */}
-                {deleteConfirmId && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <Card className="w-full max-w-sm mx-4">
-                            <CardHeader>
-                                <CardTitle className="text-red-600 flex items-center gap-2">
-                                    <Trash2 className="h-5 w-5" />
-                                    Confirm Delete
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-gray-600 mb-6">
-                                    Are you sure you want to deactivate <strong>{deleteConfirmName}</strong>?
-                                    They will no longer be able to access the system.
-                                </p>
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        onClick={closeDeleteConfirm}
-                                        className="flex-1"
-                                        disabled={deleting}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        onClick={confirmDeleteTeamMember}
-                                        disabled={deleting}
-                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                                    >
-                                        {deleting ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            'Delete'
-                                        )}
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
+                {
+                    deleteConfirmId && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <Card className="w-full max-w-sm mx-4">
+                                <CardHeader>
+                                    <CardTitle className="text-red-600 flex items-center gap-2">
+                                        <Trash2 className="h-5 w-5" />
+                                        Confirm Delete
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-gray-600 mb-6">
+                                        Are you sure you want to deactivate <strong>{deleteConfirmName}</strong>?
+                                        They will no longer be able to access the system.
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            onClick={closeDeleteConfirm}
+                                            className="flex-1"
+                                            disabled={deleting}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            onClick={confirmDeleteTeamMember}
+                                            disabled={deleting}
+                                            className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                        >
+                                            {deleting ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                'Delete'
+                                            )}
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )
+                }
 
                 {/* Password Reset Modal */}
                 <AdminResetPasswordModal
@@ -474,7 +487,7 @@ export default function TeamPage() {
                         alert('Password reset successfully')
                     }}
                 />
-            </main>
-        </div>
+            </main >
+        </div >
     )
 }

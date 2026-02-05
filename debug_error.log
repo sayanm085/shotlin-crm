@@ -1,0 +1,53 @@
+
+[2026-02-05T16:40:56.278Z] POST ERROR: PrismaClientValidationError: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].user.create()` invocation in
+/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/.next/dev/server/chunks/[root-of-the-server]__32b547f2._.js:390:162
+
+  387 // Hash password
+  388 const hashedPassword = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$bcryptjs$2f$index$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["hash"])(password, 12);
+  389 // Create user
+→ 390 const user = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prisma"].user.create({
+        data: {
+          name: "Logging Member",
+          email: "logging@test.com",
+          password: "$2b$12$Phm4ExgoDxVczxJVKfhHuOWq/yZneNSbnCEXrHqNmdfjtAShpWRhi",
+          role: "MEMBER",
+                ~~~~~~~~
+          isActive: true
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          createdAt: true
+        }
+      })
+
+Invalid value for argument `role`. Expected UserRole.
+    at rr (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/@prisma/client/runtime/client.js:10:1379)
+    at Vr.handleRequestError (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/@prisma/client/runtime/client.js:65:7815)
+    at Vr.handleAndLogRequestError (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/@prisma/client/runtime/client.js:65:7467)
+    at Vr.request (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/@prisma/client/runtime/client.js:65:7174)
+    at async a (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/@prisma/client/runtime/client.js:75:5816)
+    at async POST (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/.next/dev/server/chunks/[root-of-the-server]__32b547f2._.js:390:22)
+    at async AppRouteRouteModule.do (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:5:37866)
+    at async AppRouteRouteModule.handle (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:5:45156)
+    at async responseGenerator (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/.next/dev/server/chunks/node_modules_next_0c86fd6f._.js:17154:38)
+    at async AppRouteRouteModule.handleResponse (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:1:191938)
+    at async handleResponse (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/.next/dev/server/chunks/node_modules_next_0c86fd6f._.js:17217:32)
+    at async Module.handler (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/.next/dev/server/chunks/node_modules_next_0c86fd6f._.js:17270:13)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/base-server.js:1442:9)
+    at async DevServer.renderPageComponent (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/base-server.js:1494:24)
+    at async DevServer.renderToResponseImpl (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/base-server.js:1544:32)
+    at async DevServer.pipeImpl (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/base-server.js:1038:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/next-server.js:395:17)
+    at async DevServer.handleRequestImpl (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/base-server.js:929:17)
+    at async /Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/dev/next-dev-server.js:387:20
+    at async Span.traceAsyncFn (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/trace/trace.js:157:20)
+    at async DevServer.handleRequest (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/dev/next-dev-server.js:383:24)
+    at async invokeRender (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/lib/router-server.js:248:21)
+    at async handleRequest (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/lib/router-server.js:447:24)
+    at async requestHandlerImpl (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/lib/router-server.js:496:13)
+    at async Server.requestListener (/Users/sayanmondal/Documents/shotlin CRM/shotlin-crm/node_modules/next/dist/server/lib/start-server.js:226:13)

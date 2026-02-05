@@ -45,9 +45,12 @@ export default function AdminDashboard() {
 
     const fetchClients = async () => {
         try {
-            const res = await fetch('/api/clients')
+            const res = await fetch('/api/clients?limit=100') // Fetch more for dashboard stats
             const data = await res.json()
-            if (Array.isArray(data)) {
+
+            if (data.data && Array.isArray(data.data)) {
+                setClients(data.data)
+            } else if (Array.isArray(data)) {
                 setClients(data)
             } else {
                 setClients([])

@@ -50,6 +50,7 @@ enum UserRole {
   SUPER_ADMIN
   TEAM_MEMBER
   CLIENT
+  MEMBER
 }
 
 // ============================================
@@ -114,6 +115,13 @@ model VerificationToken {
 // CORE BUSINESS MODELS
 // ============================================
 
+enum OnboardingStatus {
+  DRAFT
+  SUBMITTED
+  VERIFIED
+  REJECTED
+}
+
 model Client {
   id               String      @id @default(uuid())
   legalName        String
@@ -126,6 +134,7 @@ model Client {
   createdById      String?     // User ID who created this client
   
   // Workflow tracking fields
+  onboardingStatus OnboardingStatus @default(DRAFT)
   websiteUrl       String?
   websiteVerified  Boolean     @default(false)
   
@@ -141,9 +150,12 @@ model Client {
   
   // App upload parallel work
   uploadAssetsDone Boolean @default(false)
+  assetsUrl        String?
   uploadScreenshotsDone Boolean @default(false)
   uploadApkDone Boolean @default(false)
+  apkUrl           String?
   privacyPolicyDone Boolean @default(false)  // Privacy policy page created
+  privacyPolicyUrl String?
   
   // Publishing status
   publishingStatus PublishingStatus @default(NOT_SUBMITTED)
@@ -174,8 +186,10 @@ model ComplianceDocument {
   clientId        String           @unique
   msmeStatus      ComplianceStatus @default(NOT_CREATED)
   msmeDocumentUrl String?
+  msmeRegistrationNumber String?
   dunsStatus      ComplianceStatus @default(NOT_CREATED)
   dunsDocumentUrl String?
+  dunsNumber      String?
   lastVerifiedAt  DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
