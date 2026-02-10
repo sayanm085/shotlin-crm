@@ -251,55 +251,65 @@ export async function PUT(
                 data = v7.data
 
                 // Update Play Console Status for payment profile and account sale
+                // Only touch fields that are explicitly provided
                 if (data.playConsole || data.accountSale !== undefined) {
+                    const pcUpdate: Record<string, unknown> = {}
+                    if (data.playConsole) {
+                        pcUpdate.paymentProfileStatus = data.playConsole.payment || false
+                    }
+                    if (data.accountSale) {
+                        pcUpdate.accountSaleComplete = data.accountSale.complete || false
+                        pcUpdate.accountSaleAmount = data.accountSale.amount || null
+                    }
                     await prisma.playConsoleStatus.upsert({
                         where: { clientId: id },
                         create: {
                             clientId: id,
-                            consoleEmail: data.consoleEmail || null, // Note: consoleEmail not in schema above, might need adding if used
-                            paymentProfileStatus: data.playConsole?.payment || false,
-                            accountSaleComplete: data.accountSale?.complete || false,
-                            accountSaleAmount: data.accountSale?.amount || null,
+                            ...pcUpdate,
                         },
-                        update: {
-                            paymentProfileStatus: data.playConsole?.payment || false,
-                            accountSaleComplete: data.accountSale?.complete || false,
-                            accountSaleAmount: data.accountSale?.amount || null,
-                        },
+                        update: pcUpdate,
                     })
                 }
 
-                // Update Client with all parallel work checkboxes
-                await prisma.client.update({
-                    where: { id },
-                    data: {
-                        // Website checkboxes
-                        websiteDesignDone: data.website?.design || false,
-                        websiteDevDone: data.website?.dev || false,
-                        websiteSearchConsoleDone: data.website?.searchConsole || false,
-                        websiteVerified: data.website?.searchConsole || false,
+                // Build client update payload conditionally — only touch sections that were sent
+                const clientUpdate: Record<string, unknown> = {}
 
-                        // App Development checkboxes
-                        // App Development checkboxes
-                        appUiDone: data.appDev?.ui || false,
-                        appDevDone: data.appDev?.dev || false,
-                        appTestingDone: data.appDev?.testing || false,
-                        appApproved: data.appDev?.testing || false,
+                if (data.website) {
+                    clientUpdate.websiteDesignDone = data.website.design || false
+                    clientUpdate.websiteDevDone = data.website.dev || false
+                    clientUpdate.websiteSearchConsoleDone = data.website.searchConsole || false
+                    clientUpdate.websiteVerified = data.website.searchConsole || false
+                }
 
-                        // Upload checkboxes
-                        uploadAssetsDone: data.upload?.assets || false,
-                        assetsUrl: data.upload?.assetsUrl || null,
-                        uploadScreenshotsDone: data.upload?.screenshots || false,
-                        uploadApkDone: data.upload?.uploaded || false,
-                        apkUrl: data.upload?.apkUrl || null,
-                        published: data.upload?.published || false,
-                        privacyPolicyDone: data.upload?.privacyPolicy || false,
-                        privacyPolicyUrl: data.upload?.privacyPolicyUrl || null,
+                if (data.appDev) {
+                    clientUpdate.appUiDone = data.appDev.ui || false
+                    clientUpdate.appDevDone = data.appDev.dev || false
+                    clientUpdate.appTestingDone = data.appDev.testing || false
+                    clientUpdate.appApproved = data.appDev.testing || false
+                }
 
-                        // Publishing status
-                        publishingStatus: data.publishingStatus || 'NOT_SUBMITTED',
-                    },
-                })
+                if (data.upload) {
+                    clientUpdate.uploadAssetsDone = data.upload.assets || false
+                    clientUpdate.assetsUrl = data.upload.assetsUrl || null
+                    clientUpdate.uploadScreenshotsDone = data.upload.screenshots || false
+                    clientUpdate.uploadApkDone = data.upload.uploaded || false
+                    clientUpdate.apkUrl = data.upload.apkUrl || null
+                    clientUpdate.published = data.upload.published || false
+                    clientUpdate.privacyPolicyDone = data.upload.privacyPolicy || false
+                    clientUpdate.privacyPolicyUrl = data.upload.privacyPolicyUrl || null
+                }
+
+                if (data.publishingStatus) {
+                    clientUpdate.publishingStatus = data.publishingStatus
+                }
+
+                // Only update if there are fields to update
+                if (Object.keys(clientUpdate).length > 0) {
+                    await prisma.client.update({
+                        where: { id },
+                        data: clientUpdate,
+                    })
+                }
 
                 // Update Organization Costs (liability)
                 if (data.orgCosts) {
@@ -308,13 +318,13 @@ export async function PUT(
                         create: {
                             clientId: id,
                             domainCost: data.orgCosts.domainCost || 0,
-                            playConsoleFee: data.orgCosts.playConsoleFee || 25,
+                            playConsoleFee: data.orgCosts.playConsoleFee || 0,
                             otherCosts: data.orgCosts.otherCosts || 0,
                             costNotes: data.orgCosts.costNotes || null,
                         },
                         update: {
                             domainCost: data.orgCosts.domainCost || 0,
-                            playConsoleFee: data.orgCosts.playConsoleFee || 25,
+                            playConsoleFee: data.orgCosts.playConsoleFee || 0,
                             otherCosts: data.orgCosts.otherCosts || 0,
                             costNotes: data.orgCosts.costNotes || null,
                         },

@@ -145,10 +145,9 @@ export default function ClientWorkflowPage() {
     const [hasDomain, setHasDomain] = useState(false)
 
     // Play Console Setup state (Step 4)
-    const [consoleAccountCreated, setConsoleAccountCreated] = useState(false)
+    // Play Console Setup state (Step 4)
+    // Unified with playConsoleStatus below for account/identity/company
     const [consolePaid, setConsolePaid] = useState(false)
-    const [consoleIdentityVerified, setConsoleIdentityVerified] = useState(false)
-    const [consoleCompanyVerified, setConsoleCompanyVerified] = useState(false)
     const [developerInviteEmail, setDeveloperInviteEmail] = useState('')
     const [developerInvited, setDeveloperInvited] = useState(false)
 
@@ -166,7 +165,7 @@ export default function ClientWorkflowPage() {
     const [accountSaleAmount, setAccountSaleAmount] = useState<number>(0)
 
     // Organization costs (liability)
-    const [orgCosts, setOrgCosts] = useState({ domainCost: 0, playConsoleFee: 25, otherCosts: 0, costNotes: '' })
+    const [orgCosts, setOrgCosts] = useState({ domainCost: 0, playConsoleFee: 0, otherCosts: 0, costNotes: '' })
 
     // URLs
     const [assetsUrl, setAssetsUrl] = useState('')
@@ -186,38 +185,70 @@ export default function ClientWorkflowPage() {
     // Auto-save logic
     const isFirstRun = useRef(true)
 
-    // Auto-save Organization Liability inputs
+    // Auto-save all Parallel Work (Step 7) inputs — only when viewing Step 7
+    const autoSaveData = JSON.stringify({
+        website: websiteStatus,
+        appDev: appDevStatus,
+        upload: uploadStatus,
+        publishingStatus,
+        accountSaleComplete,
+        accountSaleAmount,
+        assetsUrl,
+        privacyPolicyUrl,
+        apkUrl,
+        orgCosts,
+    })
+
     useEffect(() => {
         if (isFirstRun.current) {
             isFirstRun.current = false
             return
         }
 
+        // Only auto-save when the user is actually on Step 7
+        if (activeStep !== 7) return
         if (!client) return
 
-        const timer = setTimeout(() => {
-            saveStep(7, {
-                consoleEmail: client.email,
-                website: websiteStatus,
-                playConsole: playConsoleStatus,
-                appDev: appDevStatus,
-                upload: {
-                    ...uploadStatus,
-                    assetsUrl: assetsUrl,
-                    privacyPolicyUrl: privacyPolicyUrl,
-                    apkUrl: apkUrl
-                },
-                publishingStatus: publishingStatus,
-                accountSale: {
-                    complete: accountSaleComplete,
-                    amount: accountSaleAmount,
-                },
-                orgCosts: orgCosts,
-            })
+        const timer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/clients/${clientId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        step: 7,
+                        data: {
+                            consoleEmail: client.email,
+                            website: websiteStatus,
+                            playConsole: playConsoleStatus,
+                            appDev: appDevStatus,
+                            upload: {
+                                ...uploadStatus,
+                                assetsUrl: assetsUrl,
+                                privacyPolicyUrl: privacyPolicyUrl,
+                                apkUrl: apkUrl
+                            },
+                            publishingStatus: publishingStatus,
+                            accountSale: {
+                                complete: accountSaleComplete,
+                                amount: accountSaleAmount,
+                            },
+                            orgCosts: orgCosts,
+                        }
+                    }),
+                })
+                if (res.ok) {
+                    toast.success('Progress saved')
+                } else {
+                    toast.error('Failed to save progress')
+                }
+            } catch (error) {
+                console.error('Auto-save error:', error)
+                toast.error('Auto-save failed')
+            }
         }, 1500)
 
         return () => clearTimeout(timer)
-    }, [orgCosts])
+    }, [autoSaveData, activeStep])
 
     const fetchClient = async () => {
         try {
@@ -234,13 +265,14 @@ export default function ClientWorkflowPage() {
                 }
 
                 if (data.playConsoleStatus) {
-                    setConsoleAccountCreated(data.playConsoleStatus.accountCreated || false)
+                    // consolePaid is specific to Step 5 ($25 fee)
                     setConsolePaid(data.playConsoleStatus.accountPaid || false)
-                    setConsoleIdentityVerified(data.playConsoleStatus.identityVerificationStatus || false)
-                    setConsoleCompanyVerified(data.playConsoleStatus.companyVerificationStatus || false)
+
+                    // Specific to Step 5
                     setDeveloperInviteEmail(data.playConsoleStatus.developerInviteEmail || '')
                     setDeveloperInvited(data.playConsoleStatus.developerInvited || false)
 
+                    // Unified status object for both Step 5 and 7
                     setPlayConsoleStatus({
                         account: data.playConsoleStatus.accountCreated || false,
                         identity: data.playConsoleStatus.identityVerificationStatus || false,
@@ -285,7 +317,7 @@ export default function ClientWorkflowPage() {
                 if (data.organizationCost) {
                     setOrgCosts({
                         domainCost: data.organizationCost.domainCost || 0,
-                        playConsoleFee: data.organizationCost.playConsoleFee || 25,
+                        playConsoleFee: data.organizationCost.playConsoleFee || 0,
                         otherCosts: data.organizationCost.otherCosts || 0,
                         costNotes: data.organizationCost.costNotes || ''
                     })
@@ -394,7 +426,6 @@ export default function ClientWorkflowPage() {
 
     const saveStep = async (stepNum: number, data: Record<string, unknown>) => {
         setSaving(true)
-        const currentStep = activeStep
         try {
             const res = await fetch(`/api/clients/${clientId}`, {
                 method: 'PUT',
@@ -403,8 +434,14 @@ export default function ClientWorkflowPage() {
             })
             if (res.ok) {
                 toast.success('Step saved successfully')
-                await fetchClient()
-                if (currentStep >= 4 && activeStep < 6) setActiveStep(currentStep)
+                // For step 7 (Parallel Work), do NOT re-fetch the whole client.
+                // Re-fetching triggers calculateActiveStep which can reset the
+                // active step based on stale DB data before the update propagates.
+                if (stepNum !== 7) {
+                    await fetchClient()
+                    // Auto-advance to next step
+                    if (stepNum === activeStep && stepNum < 7) setActiveStep(stepNum + 1)
+                }
             } else {
                 toast.error('Failed to save step')
             }
@@ -455,13 +492,24 @@ export default function ClientWorkflowPage() {
 
             setUploadStatus(prev => {
                 const newState = { ...prev, [key]: true }
+                // Send ALL parallel-work data so the backend doesn't reset other sections
                 const saveData = {
-                    assets: { url: key === 'assets' ? url : assetsUrl, verified: newState.assets },
-                    screenshots: { verified: newState.screenshots },
-                    privacyPolicy: { url: key === 'privacyPolicy' ? url : privacyPolicyUrl, verified: newState.privacyPolicy },
-                    domain: { url: domainUrl, verified: newState.published },
-                    apk: { url: key === 'uploaded' ? url : apkUrl, verified: newState.uploaded },
-                    published: { verified: newState.published }
+                    consoleEmail: client?.email,
+                    website: websiteStatus,
+                    playConsole: playConsoleStatus,
+                    appDev: appDevStatus,
+                    upload: {
+                        ...newState,
+                        assetsUrl: key === 'assets' ? url : assetsUrl,
+                        privacyPolicyUrl: key === 'privacyPolicy' ? url : privacyPolicyUrl,
+                        apkUrl: key === 'uploaded' ? url : apkUrl,
+                    },
+                    publishingStatus: publishingStatus,
+                    accountSale: {
+                        complete: accountSaleComplete,
+                        amount: accountSaleAmount,
+                    },
+                    orgCosts: orgCosts,
                 }
                 saveStep(7, saveData)
                 return newState
@@ -758,10 +806,26 @@ export default function ClientWorkflowPage() {
 
                                             <div className="space-y-4">
                                                 {[
-                                                    { label: 'Create Play Console Account', state: consoleAccountCreated, setter: setConsoleAccountCreated },
-                                                    { label: 'Pay Registration Fee ($25)', state: consolePaid, setter: setConsolePaid },
-                                                    { label: 'Verify Identity', state: consoleIdentityVerified, setter: setConsoleIdentityVerified },
-                                                    { label: 'Verify Company', state: consoleCompanyVerified, setter: setConsoleCompanyVerified },
+                                                    {
+                                                        label: 'Create Play Console Account',
+                                                        state: playConsoleStatus.account,
+                                                        setter: (val: boolean) => setPlayConsoleStatus(prev => ({ ...prev, account: val }))
+                                                    },
+                                                    {
+                                                        label: 'Pay Registration Fee ($25)',
+                                                        state: consolePaid,
+                                                        setter: (val: boolean) => setConsolePaid(val)
+                                                    },
+                                                    {
+                                                        label: 'Verify Identity',
+                                                        state: playConsoleStatus.identity,
+                                                        setter: (val: boolean) => setPlayConsoleStatus(prev => ({ ...prev, identity: val }))
+                                                    },
+                                                    {
+                                                        label: 'Verify Company',
+                                                        state: playConsoleStatus.company,
+                                                        setter: (val: boolean) => setPlayConsoleStatus(prev => ({ ...prev, company: val }))
+                                                    },
                                                 ].map((item, i) => (
                                                     <div key={i} className="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:border-blue-100 transition-colors bg-white">
                                                         <span className="font-medium text-gray-700">{item.label}</span>
@@ -806,12 +870,12 @@ export default function ClientWorkflowPage() {
                                                 <div className="mt-6 flex justify-between">
                                                     <Button variant="ghost" onClick={() => setActiveStep(3)} className="hover:bg-gray-100 rounded-xl">← Previous</Button>
                                                     <Button
-                                                        onClick={() => saveStep(4, {
-                                                            accountCreated: consoleAccountCreated,
+                                                        onClick={() => saveStep(5, {
+                                                            accountCreated: playConsoleStatus.account,
                                                             accountPaid: consolePaid,
-                                                            identityVerified: consoleIdentityVerified,
-                                                            companyVerified: consoleCompanyVerified,
-                                                            developerEmail: developerInviteEmail,
+                                                            identityVerified: playConsoleStatus.identity,
+                                                            companyVerified: playConsoleStatus.company,
+                                                            developerEmail: developerInviteEmail || null,
                                                             developerInvited: developerInvited,
                                                         })}
                                                         disabled={saving}
@@ -873,7 +937,7 @@ export default function ClientWorkflowPage() {
                                                 <div className="mt-8 flex justify-between">
                                                     <Button variant="ghost" onClick={() => setActiveStep(4)} className="hover:bg-gray-100 rounded-xl">← Previous</Button>
                                                     <Button
-                                                        onClick={() => saveStep(5, { url: domainUrl, verified: hasDomain })}
+                                                        onClick={() => saveStep(6, { url: domainUrl, verified: hasDomain })}
                                                         disabled={saving}
                                                         className="gap-2 bg-gray-900 hover:bg-black text-white rounded-xl px-6"
                                                     >
@@ -1165,7 +1229,7 @@ export default function ClientWorkflowPage() {
                                         <div className="flex justify-end pt-4 pb-8">
                                             <Button
                                                 onClick={() => {
-                                                    saveStep(6, {
+                                                    saveStep(7, {
                                                         consoleEmail: client.email,
                                                         website: websiteStatus,
                                                         playConsole: playConsoleStatus,

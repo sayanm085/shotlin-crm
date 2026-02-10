@@ -14,11 +14,15 @@ import {
     Clock,
     ArrowUpRight,
     TrendingUp,
+    TrendingDown,
     Loader2,
     Zap,
     BarChart3,
     Calendar,
     Activity,
+    DollarSign,
+    Wallet,
+    PiggyBank,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -34,14 +38,28 @@ interface Client {
     blocked: boolean
 }
 
+interface FinancialStats {
+    accountSale: { total: number; count: number }
+    orgLiability: { total: number; breakdown: { domain: number; playConsole: number; other: number } }
+    netProfit: number
+    period: string
+}
+
 export default function AdminDashboard() {
     const { data: session } = useSession()
     const [clients, setClients] = useState<Client[]>([])
     const [loading, setLoading] = useState(true)
+    const [period, setPeriod] = useState<'30' | '60' | 'all'>('all')
+    const [financialStats, setFinancialStats] = useState<FinancialStats | null>(null)
+    const [financialLoading, setFinancialLoading] = useState(true)
 
     useEffect(() => {
         fetchClients()
     }, [])
+
+    useEffect(() => {
+        fetchFinancialStats()
+    }, [period])
 
     const fetchClients = async () => {
         try {
@@ -61,6 +79,28 @@ export default function AdminDashboard() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const fetchFinancialStats = async () => {
+        setFinancialLoading(true)
+        try {
+            const res = await fetch(`/api/dashboard/stats?period=${period}`)
+            const data = await res.json()
+            setFinancialStats(data)
+        } catch (error) {
+            console.error('Error fetching financial stats:', error)
+        } finally {
+            setFinancialLoading(false)
+        }
+    }
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(amount)
     }
 
     // Calculate real stats
@@ -93,6 +133,8 @@ export default function AdminDashboard() {
 
     const userName = session?.user?.name || 'Admin'
     const greeting = new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'
+
+    const periodLabels: Record<string, string> = { '30': '30 Days', '60': '60 Days', 'all': 'All Time' }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -221,6 +263,123 @@ export default function AdminDashboard() {
                                     </p>
                                 </CardContent>
                             </Card>
+                        </div>
+
+                        {/* ========== FINANCIAL OVERVIEW ========== */}
+                        <div className="mb-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                                        <DollarSign className="h-5 w-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-gray-900">Financial Overview</h3>
+                                        <p className="text-sm text-gray-500">Account sales, liabilities & profit</p>
+                                    </div>
+                                </div>
+
+                                {/* Period Filter Pills */}
+                                <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
+                                    {(['30', '60', 'all'] as const).map((p) => (
+                                        <button
+                                            key={p}
+                                            onClick={() => setPeriod(p)}
+                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${period === p
+                                                    ? 'bg-white text-gray-900 shadow-md'
+                                                    : 'text-gray-500 hover:text-gray-700'
+                                                }`}
+                                        >
+                                            {periodLabels[p]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {financialLoading ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                                    {/* Account Sale Card */}
+                                    <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-emerald-500 to-teal-600 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full" />
+                                        <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-tr-full" />
+                                        <CardContent className="pt-6 pb-6 relative">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <p className="text-emerald-100 text-sm font-medium">Account Sale</p>
+                                                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                                                    <DollarSign className="h-5 w-5 text-white" />
+                                                </div>
+                                            </div>
+                                            <p className="text-3xl font-bold text-white mb-1">
+                                                {formatCurrency(financialStats?.accountSale.total || 0)}
+                                            </p>
+                                            <p className="text-emerald-100 text-sm">
+                                                {financialStats?.accountSale.count || 0} sale{(financialStats?.accountSale.count || 0) !== 1 ? 's' : ''} completed
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Organization Liability Card */}
+                                    <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-orange-500 to-red-500 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full" />
+                                        <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-tr-full" />
+                                        <CardContent className="pt-6 pb-6 relative">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <p className="text-orange-100 text-sm font-medium">Organization Liability</p>
+                                                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                                                    <Wallet className="h-5 w-5 text-white" />
+                                                </div>
+                                            </div>
+                                            <p className="text-3xl font-bold text-white mb-1">
+                                                {formatCurrency(financialStats?.orgLiability.total || 0)}
+                                            </p>
+                                            <div className="flex items-center gap-3 text-orange-100 text-xs mt-2">
+                                                <span>Domain: {formatCurrency(financialStats?.orgLiability.breakdown.domain || 0)}</span>
+                                                <span>•</span>
+                                                <span>Console: {formatCurrency(financialStats?.orgLiability.breakdown.playConsole || 0)}</span>
+                                                <span>•</span>
+                                                <span>Other: {formatCurrency(financialStats?.orgLiability.breakdown.other || 0)}</span>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Net Profit Card */}
+                                    <Card className={`relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 ${(financialStats?.netProfit || 0) >= 0
+                                            ? 'bg-gradient-to-br from-blue-600 to-indigo-700'
+                                            : 'bg-gradient-to-br from-red-600 to-rose-700'
+                                        }`}>
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full" />
+                                        <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-tr-full" />
+                                        <CardContent className="pt-6 pb-6 relative">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <p className="text-blue-100 text-sm font-medium">Net Profit</p>
+                                                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                                                    <PiggyBank className="h-5 w-5 text-white" />
+                                                </div>
+                                            </div>
+                                            <p className="text-3xl font-bold text-white mb-1">
+                                                {formatCurrency(financialStats?.netProfit || 0)}
+                                            </p>
+                                            <div className="flex items-center gap-1 text-sm mt-1">
+                                                {(financialStats?.netProfit || 0) >= 0 ? (
+                                                    <>
+                                                        <TrendingUp className="h-4 w-4 text-green-300" />
+                                                        <span className="text-green-300 font-medium">Profitable</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <TrendingDown className="h-4 w-4 text-red-300" />
+                                                        <span className="text-red-300 font-medium">Loss</span>
+                                                    </>
+                                                )}
+                                                <span className="text-white/60 ml-1">• {periodLabels[period]}</span>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
