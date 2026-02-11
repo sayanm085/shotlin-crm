@@ -16,7 +16,8 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
-# Build Next.js
+# Build Next.js (dummy DATABASE_URL for build-time page data collection — real value injected at runtime)
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 RUN npm run build
 
 # ---- Production ----
