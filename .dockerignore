@@ -6,3 +6,9 @@ node_modules
 .env*
 .vscode
 .idea
+scripts
+*.log
+output*.txt
+debug*.ts
+debug*.log
+check-role.ts

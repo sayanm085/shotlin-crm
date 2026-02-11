@@ -84,18 +84,17 @@ export async function GET(request: NextRequest) {
             }
 
             // Step 4: Play Console
-            if (client.playConsoleStatus?.paymentStatus === 'COMPLETED' &&
-                client.playConsoleStatus?.idVerificationStatus === 'VERIFIED' &&
+            if (client.playConsoleStatus?.accountPaid === true &&
+                client.playConsoleStatus?.identityVerificationStatus === true &&
                 currentStep >= 4) {
                 currentStep = 5
                 status = 'Website'
             } else if (currentStep === 4) {
                 // Check internal Play Console steps
-                if (client.playConsoleStatus?.paymentStatus === 'PENDING') {
+                if (client.playConsoleStatus?.accountPaid === false) {
                     status = 'Play Console Payment'
                     blocked = true
-                } else if (client.playConsoleStatus?.idVerificationStatus === 'PENDING' ||
-                    client.playConsoleStatus?.idVerificationStatus === 'FAILED') {
+                } else if (client.playConsoleStatus?.identityVerificationStatus === false) {
                     status = 'Play Console Verification'
                     blocked = true
                 }

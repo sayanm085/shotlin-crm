@@ -24,9 +24,10 @@ import { AdminSidebar } from './sidebar'
 
 interface AdminHeaderProps {
     title: string
+    subtitle?: string
 }
 
-export function AdminHeader({ title }: AdminHeaderProps) {
+export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
     const { data: session } = useSession()
     const [showPasswordModal, setShowPasswordModal] = useState(false)
     const [showMobileSidebar, setShowMobileSidebar] = useState(false)
