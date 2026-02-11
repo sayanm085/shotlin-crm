@@ -21,8 +21,17 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        // Get client IDs matching the date filter
-        const clientFilter = period !== 'all' ? { createdAt: dateFilter } : {}
+        // Build client filter with role-based access control
+        const isSuperAdmin = session.user.role === 'SUPER_ADMIN'
+        const baseClientFilter: Record<string, unknown> = {}
+        if (period !== 'all') {
+            baseClientFilter.createdAt = dateFilter
+        }
+        // Non-admin users only see their own clients' data
+        if (!isSuperAdmin) {
+            baseClientFilter.createdById = session.user.id
+        }
+        const clientFilter = baseClientFilter
 
         // Aggregate Account Sale data
         const accountSaleData = await prisma.playConsoleStatus.findMany({

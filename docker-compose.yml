@@ -1,36 +1,49 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: shotlin-crm-db
-    restart: unless-stopped
+  # ---- PostgreSQL Database ----
+  db:
+    image: postgres:16-alpine
+    container_name: shotlin-db
+    restart: always
     environment:
-      POSTGRES_USER: shotlin
-      POSTGRES_PASSWORD: shotlin_secure_2026
-      POSTGRES_DB: shotlin_crm
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U shotlin -d shotlin_crm"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - shotlin-network
 
-  # Optional: PgAdmin for database management
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: shotlin-crm-pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@shotlin.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+  # ---- Next.js Application ----
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shotlin-app
+    restart: always
     ports:
-      - "5050:80"
+      - "127.0.0.1:3000:3000"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NODE_ENV: production
     depends_on:
-      - postgres
+      db:
+        condition: service_healthy
+    networks:
+      - shotlin-network
 
 volumes:
   postgres_data:
+    driver: local
+
+networks:
+  shotlin-network:
+    driver: bridge

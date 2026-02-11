@@ -19,15 +19,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
-                console.log("[AUTH] Authorize called with email:", credentials?.email)
-
                 if (!credentials?.email || !credentials?.password) {
-                    console.log("[AUTH] Missing credentials")
                     return null
                 }
 
                 try {
-                    // Use raw query to bypass stale Prisma client validation (UserRole enum issue)
                     const users = await prisma.$queryRaw<any[]>`
                         SELECT id, name, email, password, role, "isActive", "clientId"
                         FROM "User" 
@@ -36,16 +32,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     `
                     const user = users[0]
 
-                    console.log("[AUTH] User found:", user ? { id: user.id, email: user.email, role: user.role } : null)
-
                     if (!user || !user.password) {
-                        console.log("[AUTH] No user or no password")
                         return null
                     }
 
                     // Check if user is active
                     if (!user.isActive) {
-                        console.log("[AUTH] User is not active")
                         return null
                     }
 
@@ -53,8 +45,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         credentials.password as string,
                         user.password
                     )
-
-                    console.log("[AUTH] Password valid:", isPasswordValid)
 
                     if (!isPasswordValid) {
                         return null
@@ -67,8 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         role: user.role,
                         clientId: user.clientId,
                     }
-                } catch (error) {
-                    console.error("[AUTH] Error during authorization:", error)
+                } catch {
                     return null
                 }
             },
@@ -116,7 +105,7 @@ export async function requireSuperAdmin() {
 
 export async function requireAdmin() {
     const user = await requireAuth()
-    if (user.role !== 'SUPER_ADMIN' && user.role !== 'TEAM_MEMBER' && user.role !== 'MEMBER') {
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'TEAM_MEMBER') {
         throw new Error('Forbidden: Admin access required')
     }
     return user

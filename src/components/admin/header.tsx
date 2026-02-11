@@ -1,138 +1,125 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { Bell, Search, User, Key, LogOut, ChevronDown, Menu } from 'lucide-react'
+import { useState } from 'react'
+import { useSession, signOut } from 'next-auth/react'
+import { Bell, Search, Key, LogOut, Menu } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Separator } from '@/components/ui/separator'
 import { ChangePasswordModal } from './ChangePasswordModal'
-import { signOut } from 'next-auth/react'
 import { AdminSidebar } from './sidebar'
 
 interface AdminHeaderProps {
     title: string
-    subtitle?: string
 }
 
-export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
+export function AdminHeader({ title }: AdminHeaderProps) {
     const { data: session } = useSession()
-    const [showDropdown, setShowDropdown] = useState(false)
     const [showPasswordModal, setShowPasswordModal] = useState(false)
     const [showMobileSidebar, setShowMobileSidebar] = useState(false)
-    const dropdownRef = useRef<HTMLDivElement>(null)
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setShowDropdown(false)
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [])
 
     const userName = session?.user?.name || 'User'
     const userRole = session?.user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Team Member'
 
     return (
         <>
-            <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
+            <header className="h-14 bg-white border-b border-zinc-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
                 <div className="flex items-center gap-3">
-                    {/* Mobile Menu Button */}
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setShowMobileSidebar(true)}
-                        className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                        className="md:hidden h-8 w-8 text-zinc-500"
                     >
-                        <Menu className="h-5 w-5" />
-                    </button>
+                        <Menu className="h-4 w-4" />
+                    </Button>
 
-                    <div>
-                        <h1 className="text-xl font-semibold text-gray-900 line-clamp-1">{title}</h1>
-                        {subtitle && <p className="text-sm text-gray-500 hidden md:block">{subtitle}</p>}
-                    </div>
+                    <h1 className="text-lg font-semibold text-zinc-900">{title}</h1>
                 </div>
 
-                <div className="flex items-center gap-2 md:gap-4">
-                    {/* Search - Hidden on mobile, valid tradeoff or use icon */}
-                    <div className="relative w-64 hidden md:block">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-1">
+                    {/* Search */}
+                    <div className="relative w-56 hidden md:block mr-2">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
                         <Input
-                            placeholder="Search clients..."
-                            className="pl-9 h-9"
+                            placeholder="Search..."
+                            className="pl-8 h-8 text-sm bg-zinc-50 border-zinc-200 focus:bg-white"
                         />
                     </div>
 
+                    <Separator orientation="vertical" className="h-6 mx-1 hidden md:block" />
+
                     {/* Notifications */}
-                    <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <Bell className="h-5 w-5 text-gray-600" />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                    </button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 relative">
+                                <Bell className="h-4 w-4" />
+                                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Notifications</TooltipContent>
+                    </Tooltip>
 
-                    {/* User Dropdown */}
-                    <div className="relative" ref={dropdownRef}>
-                        <button
-                            onClick={() => setShowDropdown(!showDropdown)}
-                            className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                <User className="h-4 w-4 text-white" />
-                            </div>
-                            <span className="text-sm font-medium text-gray-700 hidden md:block">{userName}</span>
-                            <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform hidden md:block ${showDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {showDropdown && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                                {/* User Info */}
-                                <div className="px-4 py-3 border-b border-gray-100">
-                                    <p className="text-sm font-semibold text-gray-900">{userName}</p>
-                                    <p className="text-xs text-gray-500">{userRole}</p>
+                    {/* User Menu */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 gap-2 px-2 text-zinc-600 hover:text-zinc-900">
+                                <div className="w-6 h-6 bg-zinc-200 rounded-full flex items-center justify-center text-xs font-medium text-zinc-700">
+                                    {userName.charAt(0).toUpperCase()}
                                 </div>
-
-                                {/* Menu Items */}
-                                <div className="py-1">
-                                    <button
-                                        onClick={() => {
-                                            setShowDropdown(false)
-                                            setShowPasswordModal(true)
-                                        }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                    >
-                                        <Key className="h-4 w-4 text-gray-400" />
-                                        Change Password
-                                    </button>
-                                    <button
-                                        onClick={() => signOut({ callbackUrl: '/login' })}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors"
-                                    >
-                                        <LogOut className="h-4 w-4" />
-                                        Sign Out
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                                <span className="text-sm font-medium hidden md:block">{userName}</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel className="font-normal">
+                                <p className="text-sm font-medium">{userName}</p>
+                                <p className="text-xs text-muted-foreground">{userRole}</p>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setShowPasswordModal(true)}>
+                                <Key className="h-3.5 w-3.5 mr-2" />
+                                Change Password
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => signOut({ callbackUrl: '/login' })}
+                                className="text-red-600 focus:text-red-600"
+                            >
+                                <LogOut className="h-3.5 w-3.5 mr-2" />
+                                Sign Out
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </header>
 
             {/* Mobile Sidebar Overlay */}
             {showMobileSidebar && (
                 <div className="fixed inset-0 z-50 md:hidden">
-                    {/* Backdrop */}
                     <div
-                        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                        className="absolute inset-0 bg-black/40"
                         onClick={() => setShowMobileSidebar(false)}
                     />
-                    {/* Sidebar */}
                     <AdminSidebar
-                        className="w-64 h-full shadow-2xl animate-in slide-in-from-left duration-200"
+                        className="w-64 h-full"
                         onClose={() => setShowMobileSidebar(false)}
                     />
                 </div>
             )}
 
-            {/* Change Password Modal */}
             <ChangePasswordModal
                 isOpen={showPasswordModal}
                 onClose={() => setShowPasswordModal(false)}

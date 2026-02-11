@@ -43,9 +43,8 @@ export function AdminResetPasswordModal({ isOpen, onClose, userId, userName, onS
             } else {
                 setError(data.error || 'Failed to reset password')
             }
-        } catch (err) {
+        } catch {
             setError('Something went wrong')
-            console.error(err)
         } finally {
             setLoading(false)
         }
@@ -74,15 +73,15 @@ export function AdminResetPasswordModal({ isOpen, onClose, userId, userName, onS
                         <Label htmlFor="new-password">New Password</Label>
                         <Input
                             id="new-password"
-                            type="text"
+                            type="password"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             placeholder="Enter new password"
                             required
-                            minLength={6}
+                            minLength={8}
                         />
                         <p className="text-xs text-gray-500">
-                            Minimum 6 characters. Use a mix of letters and numbers for better security.
+                            Minimum 8 characters. Must include uppercase, lowercase, and a number.
                         </p>
                     </div>
 
@@ -94,7 +93,7 @@ export function AdminResetPasswordModal({ isOpen, onClose, userId, userName, onS
                         </Button>
                         <Button
                             type="submit"
-                            disabled={loading || newPassword.length < 6}
+                            disabled={loading || newPassword.length < 8}
                             className="bg-yellow-600 hover:bg-yellow-700 text-white"
                         >
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Reset Password'}

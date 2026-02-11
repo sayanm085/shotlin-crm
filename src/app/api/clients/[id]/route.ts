@@ -47,6 +47,7 @@ export async function GET(
                 submissionReview: true,
                 paymentMilestones: true,
                 organizationCost: true,
+                user: { select: { id: true } },
             },
         })
 
@@ -54,8 +55,8 @@ export async function GET(
             return NextResponse.json({ error: 'Client not found' }, { status: 404 })
         }
 
-        // Check ownership
-        if (session.user.role !== 'SUPER_ADMIN' && client.createdById !== session.user.id) {
+        // Check ownership (creator or assigned member)
+        if (session.user.role !== 'SUPER_ADMIN' && client.createdById !== session.user.id && client.user?.id !== session.user.id) {
             return NextResponse.json({ error: 'Access denied' }, { status: 403 })
         }
 
@@ -137,10 +138,12 @@ export async function PUT(
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // Ownership check
-    const hasAccess = await checkOwnership(id, session.user.id, session.user.role)
-    if (!hasAccess && (await prisma.client.findUnique({ where: { id } }))) {
-        // Only return 403 if client exists, otherwise standard 404/error down the line or just 403 covering both
+    // Ownership check — single fetch, no race condition
+    const existing = await prisma.client.findUnique({ where: { id }, select: { id: true, createdById: true, user: { select: { id: true } } } })
+    if (!existing) {
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+    if (session.user.role !== 'SUPER_ADMIN' && existing.createdById !== session.user.id && existing.user?.id !== session.user.id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
@@ -154,7 +157,6 @@ export async function PUT(
             return NextResponse.json({ error: 'Invalid step' }, { status: 400 })
         }
 
-        console.log('Saving step:', step, 'data:', JSON.stringify(body.data))
 
         let data = body.data
 
@@ -354,9 +356,12 @@ export async function PATCH(
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // Ownership check
-    const hasAccess = await checkOwnership(id, session.user.id, session.user.role)
-    if (!hasAccess && (await prisma.client.findUnique({ where: { id } }))) {
+    // Ownership check — single fetch, no race condition
+    const existing = await prisma.client.findUnique({ where: { id }, select: { id: true, createdById: true, user: { select: { id: true } } } })
+    if (!existing) {
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+    if (session.user.role !== 'SUPER_ADMIN' && existing.createdById !== session.user.id && existing.user?.id !== session.user.id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
@@ -392,9 +397,12 @@ export async function DELETE(
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // Ownership check
-    const hasAccess = await checkOwnership(id, session.user.id, session.user.role)
-    if (!hasAccess && (await prisma.client.findUnique({ where: { id } }))) {
+    // Ownership check — single fetch, no race condition
+    const existing = await prisma.client.findUnique({ where: { id }, select: { id: true, createdById: true, user: { select: { id: true } } } })
+    if (!existing) {
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+    if (session.user.role !== 'SUPER_ADMIN' && existing.createdById !== session.user.id && existing.user?.id !== session.user.id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

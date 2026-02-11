@@ -5,24 +5,42 @@ import { useSession } from 'next-auth/react'
 import { AdminHeader } from '@/components/admin/header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ProgressRing, ProgressBar } from '@/components/shared/progress-indicators'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
     Users,
-    CheckCircle,
     AlertTriangle,
-    XCircle,
     Clock,
     ArrowUpRight,
     TrendingUp,
     TrendingDown,
-    Loader2,
-    Zap,
-    BarChart3,
-    Calendar,
-    Activity,
-    DollarSign,
-    Wallet,
-    PiggyBank,
+    CheckCircle2,
+    XCircle,
+    MoreHorizontal,
+    ExternalLink,
+    Minus,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -63,9 +81,8 @@ export default function AdminDashboard() {
 
     const fetchClients = async () => {
         try {
-            const res = await fetch('/api/clients?limit=100') // Fetch more for dashboard stats
+            const res = await fetch('/api/clients?limit=100')
             const data = await res.json()
-
             if (data.data && Array.isArray(data.data)) {
                 setClients(data.data)
             } else if (Array.isArray(data)) {
@@ -103,7 +120,6 @@ export default function AdminDashboard() {
         }).format(amount)
     }
 
-    // Calculate real stats
     const stats = {
         totalClients: clients.length,
         activeProjects: clients.filter(c => c.currentStep < c.totalSteps && !c.blocked).length,
@@ -111,411 +127,370 @@ export default function AdminDashboard() {
         blockedTasks: clients.filter(c => c.blocked).length,
     }
 
-    // Recent clients (last 5)
-    const recentClients = clients.slice(0, 5).map(client => ({
+    const recentClients = clients.slice(0, 6).map(client => ({
         id: client.id,
         name: client.name,
         type: client.type,
         status: client.blocked ? 'BLOCKED' : client.status === 'Completed' ? 'COMPLETED' : 'IN_PROGRESS',
         progress: Math.round((client.currentStep / client.totalSteps) * 100),
+        step: `${client.currentStep}/${client.totalSteps}`,
     }))
 
-    // Blocked items
     const blockedItems = clients
         .filter(c => c.blocked)
-        .slice(0, 3)
+        .slice(0, 5)
         .map(c => ({
+            id: c.id,
             client: c.name,
             task: c.status,
-            days: Math.floor(Math.random() * 10) + 1,
-            type: 'pending',
+            step: `Step ${c.currentStep}`,
         }))
 
-    const userName = session?.user?.name || 'Admin'
-    const greeting = new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'
-
-    const periodLabels: Record<string, string> = { '30': '30 Days', '60': '60 Days', 'all': 'All Time' }
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'COMPLETED':
+                return <Badge variant="outline" className="text-zinc-600 border-zinc-300 font-normal text-xs">Completed</Badge>
+            case 'BLOCKED':
+                return <Badge variant="destructive" className="font-normal text-xs">Blocked</Badge>
+            default:
+                return <Badge variant="secondary" className="font-normal text-xs">In Progress</Badge>
+        }
+    }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-            <AdminHeader
-                title="Dashboard"
-                subtitle="Overview of all client operations"
-            />
+        <div className="min-h-screen bg-zinc-50">
+            <AdminHeader title="Dashboard" />
 
-            <main className="p-6">
+            <main className="p-6 space-y-6">
                 {loading ? (
-                    <div className="flex items-center justify-center py-20">
-                        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                    </div>
+                    <DashboardSkeleton />
                 ) : (
                     <>
-                        {/* Hero Banner */}
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 p-8 mb-8 shadow-xl">
-                            {/* Background Pattern */}
-                            <div className="absolute inset-0 opacity-10">
-                                <div className="absolute top-0 left-0 w-40 h-40 bg-white rounded-full blur-3xl" />
-                                <div className="absolute bottom-0 right-0 w-60 h-60 bg-white rounded-full blur-3xl" />
-                            </div>
-
-                            <div className="relative z-10 flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-3xl font-bold text-white mb-2">
-                                        {greeting}, {userName}! 👋
-                                    </h2>
-                                    <p className="text-blue-100 text-lg">
-                                        Here&apos;s what&apos;s happening with your clients today
-                                    </p>
-                                </div>
-                                <div className="hidden lg:flex items-center gap-4">
-                                    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-white">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Calendar className="h-4 w-4" />
-                                            <span className="text-sm opacity-80">Today</span>
-                                        </div>
-                                        <p className="text-2xl font-bold">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
-                                    </div>
-                                    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-white">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Activity className="h-4 w-4" />
-                                            <span className="text-sm opacity-80">Active</span>
-                                        </div>
-                                        <p className="text-2xl font-bold">{stats.activeProjects}</p>
-                                    </div>
-                                </div>
-                            </div>
+                        {/* ROW 1 — KPI Strip */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <KPICard
+                                label="Total Clients"
+                                value={stats.totalClients}
+                                trend={null}
+                            />
+                            <KPICard
+                                label="In Progress"
+                                value={stats.activeProjects}
+                                trend={stats.totalClients > 0 ? Math.round((stats.activeProjects / stats.totalClients) * 100) : null}
+                                trendLabel="of total"
+                            />
+                            <KPICard
+                                label="Completed"
+                                value={stats.completedThisMonth}
+                                trend={null}
+                            />
+                            <KPICard
+                                label="Blocked"
+                                value={stats.blockedTasks}
+                                trend={null}
+                                isAlert={stats.blockedTasks > 0}
+                            />
                         </div>
 
-                        {/* Stats Grid - Glass Effect */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-                            <Card className="relative overflow-hidden border-0 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-bl-full" />
-                                <CardContent className="pt-6 relative">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-500">Total Clients</p>
-                                            <p className="text-4xl font-bold text-gray-900 mt-2">{stats.totalClients}</p>
-                                        </div>
-                                        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                                            <Users className="h-7 w-7 text-white" />
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center mt-4 text-sm">
-                                        <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                                        <span className="text-green-600 font-medium">All time</span>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="relative overflow-hidden border-0 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-bl-full" />
-                                <CardContent className="pt-6 relative">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-500">In Progress</p>
-                                            <p className="text-4xl font-bold text-gray-900 mt-2">{stats.activeProjects}</p>
-                                        </div>
-                                        <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
-                                            <Clock className="h-7 w-7 text-white" />
-                                        </div>
-                                    </div>
-                                    <ProgressBar
-                                        completed={stats.activeProjects}
-                                        total={stats.totalClients || 1}
-                                        showLabel={false}
-                                        className="mt-4"
-                                    />
-                                </CardContent>
-                            </Card>
-
-                            <Card className="relative overflow-hidden border-0 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-bl-full" />
-                                <CardContent className="pt-6 relative">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-500">Completed</p>
-                                            <p className="text-4xl font-bold text-gray-900 mt-2">{stats.completedThisMonth}</p>
-                                        </div>
-                                        <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/30">
-                                            <CheckCircle className="h-7 w-7 text-white" />
-                                        </div>
-                                    </div>
-                                    <p className="text-sm text-green-600 font-medium mt-4 flex items-center gap-1">
-                                        <Zap className="h-4 w-4" /> Successfully published
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-red-50 to-orange-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-bl-full" />
-                                <CardContent className="pt-6 relative">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-red-600">Blocked</p>
-                                            <p className="text-4xl font-bold text-red-700 mt-2">{stats.blockedTasks}</p>
-                                        </div>
-                                        <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/30">
-                                            <XCircle className="h-7 w-7 text-white" />
-                                        </div>
-                                    </div>
-                                    <p className="text-sm text-red-600 mt-4 font-medium flex items-center gap-1">
-                                        <AlertTriangle className="h-4 w-4" /> Require action
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* ========== FINANCIAL OVERVIEW ========== */}
-                        <div className="mb-8">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-                                        <DollarSign className="h-5 w-5 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-gray-900">Financial Overview</h3>
-                                        <p className="text-sm text-gray-500">Account sales, liabilities & profit</p>
-                                    </div>
+                        {/* ROW 2 — Financial Panel */}
+                        <Card className="border-zinc-200">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-lg font-medium text-zinc-900">Financial Overview</CardTitle>
+                                    <Tabs value={period} onValueChange={(v) => setPeriod(v as '30' | '60' | 'all')}>
+                                        <TabsList className="h-8">
+                                            <TabsTrigger value="30" className="text-xs px-3 h-6">30D</TabsTrigger>
+                                            <TabsTrigger value="60" className="text-xs px-3 h-6">60D</TabsTrigger>
+                                            <TabsTrigger value="all" className="text-xs px-3 h-6">All</TabsTrigger>
+                                        </TabsList>
+                                    </Tabs>
                                 </div>
-
-                                {/* Period Filter Pills */}
-                                <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
-                                    {(['30', '60', 'all'] as const).map((p) => (
-                                        <button
-                                            key={p}
-                                            onClick={() => setPeriod(p)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${period === p
-                                                    ? 'bg-white text-gray-900 shadow-md'
-                                                    : 'text-gray-500 hover:text-gray-700'
-                                                }`}
-                                        >
-                                            {periodLabels[p]}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {financialLoading ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                                    {/* Account Sale Card */}
-                                    <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-emerald-500 to-teal-600 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full" />
-                                        <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-tr-full" />
-                                        <CardContent className="pt-6 pb-6 relative">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <p className="text-emerald-100 text-sm font-medium">Account Sale</p>
-                                                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                                                    <DollarSign className="h-5 w-5 text-white" />
-                                                </div>
+                            </CardHeader>
+                            <Separator />
+                            <CardContent className="pt-6">
+                                {financialLoading ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} className="space-y-2">
+                                                <Skeleton className="h-4 w-24" />
+                                                <Skeleton className="h-8 w-32" />
+                                                <Skeleton className="h-3 w-20" />
                                             </div>
-                                            <p className="text-3xl font-bold text-white mb-1">
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:divide-x md:divide-zinc-200">
+                                        {/* Account Sale */}
+                                        <div className="space-y-1">
+                                            <p className="text-sm text-muted-foreground">Account Sale</p>
+                                            <p className="text-3xl font-bold tabular-nums text-zinc-900">
                                                 {formatCurrency(financialStats?.accountSale.total || 0)}
                                             </p>
-                                            <p className="text-emerald-100 text-sm">
+                                            <p className="text-xs text-muted-foreground">
                                                 {financialStats?.accountSale.count || 0} sale{(financialStats?.accountSale.count || 0) !== 1 ? 's' : ''} completed
                                             </p>
-                                        </CardContent>
-                                    </Card>
+                                        </div>
 
-                                    {/* Organization Liability Card */}
-                                    <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-orange-500 to-red-500 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full" />
-                                        <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-tr-full" />
-                                        <CardContent className="pt-6 pb-6 relative">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <p className="text-orange-100 text-sm font-medium">Organization Liability</p>
-                                                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                                                    <Wallet className="h-5 w-5 text-white" />
-                                                </div>
-                                            </div>
-                                            <p className="text-3xl font-bold text-white mb-1">
+                                        {/* Organization Liability */}
+                                        <div className="md:pl-6 space-y-1">
+                                            <p className="text-sm text-muted-foreground">Organization Liability</p>
+                                            <p className="text-3xl font-bold tabular-nums text-zinc-900">
                                                 {formatCurrency(financialStats?.orgLiability.total || 0)}
                                             </p>
-                                            <div className="flex items-center gap-3 text-orange-100 text-xs mt-2">
-                                                <span>Domain: {formatCurrency(financialStats?.orgLiability.breakdown.domain || 0)}</span>
-                                                <span>•</span>
-                                                <span>Console: {formatCurrency(financialStats?.orgLiability.breakdown.playConsole || 0)}</span>
-                                                <span>•</span>
-                                                <span>Other: {formatCurrency(financialStats?.orgLiability.breakdown.other || 0)}</span>
+                                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                                <span>Domain {formatCurrency(financialStats?.orgLiability.breakdown.domain || 0)}</span>
+                                                <span className="text-zinc-300">·</span>
+                                                <span>Console {formatCurrency(financialStats?.orgLiability.breakdown.playConsole || 0)}</span>
+                                                <span className="text-zinc-300">·</span>
+                                                <span>Other {formatCurrency(financialStats?.orgLiability.breakdown.other || 0)}</span>
                                             </div>
-                                        </CardContent>
-                                    </Card>
+                                        </div>
 
-                                    {/* Net Profit Card */}
-                                    <Card className={`relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 ${(financialStats?.netProfit || 0) >= 0
-                                            ? 'bg-gradient-to-br from-blue-600 to-indigo-700'
-                                            : 'bg-gradient-to-br from-red-600 to-rose-700'
-                                        }`}>
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full" />
-                                        <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-tr-full" />
-                                        <CardContent className="pt-6 pb-6 relative">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <p className="text-blue-100 text-sm font-medium">Net Profit</p>
-                                                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                                                    <PiggyBank className="h-5 w-5 text-white" />
-                                                </div>
-                                            </div>
-                                            <p className="text-3xl font-bold text-white mb-1">
+                                        {/* Net Profit */}
+                                        <div className="md:pl-6 space-y-1">
+                                            <p className="text-sm text-muted-foreground">Net Profit</p>
+                                            <p className={`text-3xl font-bold tabular-nums ${(financialStats?.netProfit || 0) >= 0 ? 'text-zinc-900' : 'text-red-600'}`}>
                                                 {formatCurrency(financialStats?.netProfit || 0)}
                                             </p>
-                                            <div className="flex items-center gap-1 text-sm mt-1">
+                                            <div className="flex items-center gap-1 text-xs">
                                                 {(financialStats?.netProfit || 0) >= 0 ? (
                                                     <>
-                                                        <TrendingUp className="h-4 w-4 text-green-300" />
-                                                        <span className="text-green-300 font-medium">Profitable</span>
+                                                        <TrendingUp className="h-3 w-3 text-emerald-600" />
+                                                        <span className="text-emerald-600">Profitable</span>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <TrendingDown className="h-4 w-4 text-red-300" />
-                                                        <span className="text-red-300 font-medium">Loss</span>
+                                                        <TrendingDown className="h-3 w-3 text-red-500" />
+                                                        <span className="text-red-500">Loss</span>
                                                     </>
                                                 )}
-                                                <span className="text-white/60 ml-1">• {periodLabels[period]}</span>
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {/* Recent Clients */}
-                            <Card className="lg:col-span-2 border-0 bg-white/80 backdrop-blur-sm shadow-lg">
-                                <CardHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                                            <BarChart3 className="h-5 w-5 text-blue-600" />
                                         </div>
-                                        <CardTitle>Recent Clients</CardTitle>
                                     </div>
-                                    <Link href="/admin/clients" className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 font-medium">
-                                        View all <ArrowUpRight className="h-4 w-4" />
-                                    </Link>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* ROW 3 — Operations Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Recent Clients Table */}
+                            <Card className="lg:col-span-2 border-zinc-200">
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-lg font-medium text-zinc-900">Recent Clients</CardTitle>
+                                        <Link href="/admin/clients" className="inline-flex items-center text-xs text-muted-foreground hover:text-zinc-900 h-7 px-2 rounded-md hover:bg-zinc-100 transition-colors">
+                                            View all <ArrowUpRight className="h-3 w-3 ml-1" />
+                                        </Link>
+                                    </div>
                                 </CardHeader>
-                                <CardContent className="pt-4">
+                                <Separator />
+                                <CardContent className="p-0">
                                     {recentClients.length === 0 ? (
-                                        <div className="text-center py-12">
-                                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                                <Users className="h-8 w-8 text-gray-400" />
-                                            </div>
-                                            <p className="text-gray-500">No clients yet</p>
-                                            <Link href="/admin/clients/new" className="text-blue-600 hover:underline text-sm">
-                                                Add your first client →
-                                            </Link>
+                                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                                            <Users className="h-8 w-8 text-zinc-300 mb-3" />
+                                            <p className="text-sm text-muted-foreground mb-1">No clients yet</p>
+                                            <Link href="/admin/clients/new" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">Add your first client</Link>
+                                        </div>
+                                    ) : (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="hover:bg-transparent">
+                                                    <TableHead className="text-xs font-medium text-zinc-500">Name</TableHead>
+                                                    <TableHead className="text-xs font-medium text-zinc-500">Type</TableHead>
+                                                    <TableHead className="text-xs font-medium text-zinc-500 w-32">Progress</TableHead>
+                                                    <TableHead className="text-xs font-medium text-zinc-500">Status</TableHead>
+                                                    <TableHead className="text-xs font-medium text-zinc-500 w-10"></TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {recentClients.map((client) => (
+                                                    <TableRow key={client.id} className="group">
+                                                        <TableCell className="font-medium text-sm text-zinc-900">
+                                                            {client.name}
+                                                        </TableCell>
+                                                        <TableCell className="text-sm text-zinc-500">
+                                                            {client.type.replace('_', ' ')}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-2">
+                                                                <Progress value={client.progress} className="h-1.5 w-16" />
+                                                                <span className="text-xs text-muted-foreground tabular-nums">{client.step}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {getStatusBadge(client.status)}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <MoreHorizontal className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end" className="w-36">
+                                                                    <DropdownMenuItem asChild>
+                                                                        <Link href={`/admin/clients/${client.id}`}>
+                                                                            <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                                                                            View Details
+                                                                        </Link>
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            {/* Blocked / Alerts Panel */}
+                            <Card className="border-zinc-200">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-lg font-medium text-zinc-900 flex items-center gap-2">
+                                        Alerts
+                                        {blockedItems.length > 0 && (
+                                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 font-normal">
+                                                {blockedItems.length}
+                                            </Badge>
+                                        )}
+                                    </CardTitle>
+                                </CardHeader>
+                                <Separator />
+                                <CardContent className="pt-4">
+                                    {blockedItems.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                                            <Minus className="h-6 w-6 text-zinc-300 mb-2" />
+                                            <p className="text-sm text-muted-foreground">No blocked items</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
-                                            {recentClients.map((client) => (
+                                            {blockedItems.map((item, i) => (
                                                 <Link
-                                                    key={client.id}
-                                                    href={`/admin/clients/${client.id}`}
-                                                    className="flex items-center justify-between p-4 bg-gray-50/80 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:shadow-md group"
+                                                    key={i}
+                                                    href={`/admin/clients/${item.id}`}
+                                                    className="flex items-start gap-3 p-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors duration-150"
                                                 >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md group-hover:scale-105 transition-transform">
-                                                            {client.name.charAt(0)}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-semibold text-gray-900">{client.name}</p>
-                                                            <p className="text-sm text-gray-500">{client.type.replace('_', ' ')}</p>
-                                                        </div>
+                                                    <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-zinc-900 truncate">{item.client}</p>
+                                                        <p className="text-xs text-muted-foreground mt-0.5">{item.step} — {item.task}</p>
                                                     </div>
-                                                    <div className="flex items-center gap-4">
-                                                        <ProgressRing percentage={client.progress} size={48} strokeWidth={4} />
-                                                        <Badge
-                                                            variant={
-                                                                client.status === 'COMPLETED'
-                                                                    ? 'success'
-                                                                    : client.status === 'BLOCKED'
-                                                                        ? 'destructive'
-                                                                        : 'info'
-                                                            }
-                                                        >
-                                                            {client.status.replace('_', ' ')}
-                                                        </Badge>
-                                                        <ArrowUpRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
-                                                    </div>
+                                                    <ArrowUpRight className="h-3.5 w-3.5 text-zinc-400 shrink-0 mt-0.5" />
                                                 </Link>
                                             ))}
                                         </div>
                                     )}
                                 </CardContent>
                             </Card>
-
-                            {/* Blocked Items */}
-                            <Card className="border-0 bg-gradient-to-br from-red-50/80 to-orange-50/80 backdrop-blur-sm shadow-lg">
-                                <CardHeader className="border-b border-red-100/50 pb-4">
-                                    <CardTitle className="flex items-center gap-2 text-red-700">
-                                        <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                                            <AlertTriangle className="h-5 w-5 text-red-600" />
-                                        </div>
-                                        Blocked Items
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="pt-4">
-                                    {blockedItems.length === 0 ? (
-                                        <div className="text-center py-8">
-                                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                                <CheckCircle className="h-8 w-8 text-green-600" />
-                                            </div>
-                                            <p className="text-green-600 font-medium">All clear! 🎉</p>
-                                            <p className="text-sm text-gray-500">No blocked items</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {blockedItems.map((item, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="p-4 bg-white/80 border border-red-200/50 rounded-xl shadow-sm hover:shadow-md transition-all"
-                                                >
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <p className="font-medium text-gray-900">{item.client}</p>
-                                                        <Badge variant="client">CLIENT</Badge>
-                                                    </div>
-                                                    <p className="text-sm text-red-700">{item.task}</p>
-                                                    <p className="text-xs text-gray-500 mt-2">Blocked for {item.days} days</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    <Link
-                                        href="/admin/clients?filter=blocked"
-                                        className="block mt-4 text-center text-sm text-red-600 hover:text-red-700 font-medium"
-                                    >
-                                        View all blocked items →
-                                    </Link>
-                                </CardContent>
-                            </Card>
                         </div>
 
-                        {/* System Rules - Redesigned */}
-                        <Card className="mt-8 border-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-2xl overflow-hidden">
-                            <CardContent className="py-6 relative">
-                                <div className="absolute inset-0 opacity-5">
-                                    <div className="absolute top-0 left-1/4 w-32 h-32 bg-blue-500 rounded-full blur-3xl" />
-                                    <div className="absolute bottom-0 right-1/4 w-40 h-40 bg-purple-500 rounded-full blur-3xl" />
-                                </div>
-                                <div className="relative flex items-center gap-6">
-                                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                                        <span className="text-3xl">🔒</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-xl mb-2">System Operating Rules</h3>
-                                        <p className="text-gray-300 leading-relaxed">
-                                            NO task can move to &quot;In Progress&quot; unless all dependencies are marked &quot;Completed&quot;.
-                                            Any blocked item = CLIENT responsibility. Manual override = DISABLED.
-                                        </p>
-                                    </div>
+                        {/* ROW 4 — System Info */}
+                        <Card className="border-zinc-200">
+                            <CardContent className="py-4">
+                                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                                    <span>
+                                        No task can move to &quot;In Progress&quot; unless all dependencies are marked &quot;Completed&quot;.
+                                        Blocked items require client action. Manual override is disabled.
+                                    </span>
                                 </div>
                             </CardContent>
                         </Card>
                     </>
                 )}
             </main>
+        </div>
+    )
+}
+
+/* ─── KPI Card Component ─── */
+function KPICard({
+    label,
+    value,
+    trend,
+    trendLabel,
+    isAlert = false,
+}: {
+    label: string
+    value: number
+    trend: number | null
+    trendLabel?: string
+    isAlert?: boolean
+}) {
+    return (
+        <Card className="border-zinc-200">
+            <CardContent className="pt-5 pb-4 px-5">
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className={`text-3xl font-bold tabular-nums mt-1 ${isAlert ? 'text-red-600' : 'text-zinc-900'}`}>
+                    {value}
+                </p>
+                {trend !== null && (
+                    <div className="flex items-center gap-1 mt-2">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-normal tabular-nums">
+                            {trend}%
+                        </Badge>
+                        {trendLabel && <span className="text-[10px] text-muted-foreground">{trendLabel}</span>}
+                    </div>
+                )}
+                {trend === null && (
+                    <div className="mt-2 h-4" />
+                )}
+            </CardContent>
+        </Card>
+    )
+}
+
+/* ─── Loading Skeleton ─── */
+function DashboardSkeleton() {
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(i => (
+                    <Card key={i} className="border-zinc-200">
+                        <CardContent className="pt-5 pb-4 px-5 space-y-3">
+                            <Skeleton className="h-3 w-20" />
+                            <Skeleton className="h-8 w-16" />
+                            <Skeleton className="h-4 w-12" />
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+            <Card className="border-zinc-200">
+                <CardContent className="pt-6 pb-6 space-y-4">
+                    <Skeleton className="h-4 w-40" />
+                    <div className="grid grid-cols-3 gap-6">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="space-y-2">
+                                <Skeleton className="h-3 w-24" />
+                                <Skeleton className="h-8 w-28" />
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card className="lg:col-span-2 border-zinc-200">
+                    <CardContent className="pt-6 space-y-4">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="flex items-center gap-4">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-4 w-20" />
+                                <Skeleton className="h-2 w-16" />
+                                <Skeleton className="h-5 w-16" />
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+                <Card className="border-zinc-200">
+                    <CardContent className="pt-6 space-y-4">
+                        {[1, 2, 3].map(i => (
+                            <Skeleton key={i} className="h-16 w-full" />
+                        ))}
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     )
 }

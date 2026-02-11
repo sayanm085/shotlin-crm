@@ -53,6 +53,12 @@ export async function PATCH(
             }
         })
     } catch (error) {
+        if (error instanceof Error && error.message.includes('Forbidden')) {
+            return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+        }
+        if (error instanceof Error && error.message.includes('Unauthorized')) {
+            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+        }
         console.error('Error reassigning client:', error)
         return NextResponse.json(
             { error: 'Failed to reassign client' },

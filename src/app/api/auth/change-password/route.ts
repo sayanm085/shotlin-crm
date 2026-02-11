@@ -3,14 +3,29 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 
 const changePasswordSchema = z.object({
     currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+    newPassword: z.string()
+        .min(8, 'New password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
+        .regex(/[a-z]/, 'Must contain at least one lowercase letter')
+        .regex(/[0-9]/, 'Must contain at least one number'),
 })
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limit check
+        const ip = getClientIp(request)
+        const rl = checkRateLimit(`password-change:${ip}`, RATE_LIMITS.PASSWORD_CHANGE)
+        if (!rl.success) {
+            return NextResponse.json(
+                { error: 'Too many attempts. Please wait before trying again.' },
+                { status: 429 }
+            )
+        }
+
         const session = await auth()
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })

@@ -3,12 +3,17 @@ import { prisma } from '@/lib/prisma'
 import { requireSuperAdmin } from '@/lib/auth'
 import { hash } from 'bcryptjs'
 import { z } from 'zod'
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 
 // Validation Schema
 const createTeamMemberSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    password: z.string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
+        .regex(/[a-z]/, 'Must contain at least one lowercase letter')
+        .regex(/[0-9]/, 'Must contain at least one number'),
     role: z.enum(['SUPER_ADMIN', 'TEAM_MEMBER', 'MEMBER']).default('TEAM_MEMBER'),
 })
 
@@ -41,6 +46,16 @@ export async function GET() {
 // POST: Create new team member
 export async function POST(request: Request) {
     try {
+        // Rate limit check
+        const ip = getClientIp(request)
+        const rl = checkRateLimit(`create-user:${ip}`, RATE_LIMITS.CREATE_USER)
+        if (!rl.success) {
+            return NextResponse.json(
+                { error: 'Too many requests. Please wait before trying again.' },
+                { status: 429 }
+            )
+        }
+
         await requireSuperAdmin()
 
         const body = await request.json()
